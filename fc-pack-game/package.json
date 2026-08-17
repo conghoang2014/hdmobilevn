@@ -1,0 +1,12 @@
+{
+  "name": "fc-pack-game",
+  "version": "2.0.0",
+  "description": "FC Pack Opening Game with free cloud save (zero npm deps)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
