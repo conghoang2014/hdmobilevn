@@ -112,7 +112,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // API
     if (p === '/api/health') {
-      let ver = '2.2.1';
+      let ver = '2.2.2';
       try {
         const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
         if (pkg.version) ver = pkg.version;
@@ -122,7 +122,7 @@ const server = http.createServer(async (req, res) => {
         time: Date.now(),
         dataDir: DATA_DIR,
         version: ver,
-        build: 'admin-rank-inject-2.2.1'
+        build: 'admin-rank-inject-2.2.2'
       });
     }
 
