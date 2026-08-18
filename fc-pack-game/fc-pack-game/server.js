@@ -289,8 +289,9 @@ const server = http.createServer(async (req, res) => {
     let rel = p === '/' ? '/index.html' : p;
     rel = decodeURIComponent(rel.split('?')[0]);
     // prevent path traversal
-    const filePath = path.normalize(path.join(ROOT, rel));
-    if (!filePath.startsWith(ROOT)) return send(res, 403, { error: 'Forbidden' });
+    const filePath = path.resolve(path.join(ROOT, rel));
+    const rootResolved = path.resolve(ROOT);
+    if (!filePath.startsWith(rootResolved)) return send(res, 403, { error: 'Forbidden' });
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       return send(res, 404, { error: 'Not found' });
     }
@@ -308,7 +309,8 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log('[FC Pack] http://localhost:' + PORT);
-  console.log('[FC Pack] Data: ' + DATA_DIR + ' (keep this folder when updating)');
+// Railway / cloud: must bind 0.0.0.0 and use process.env.PORT
+server.listen(Number(PORT), '0.0.0.0', () => {
+  console.log('[FC Pack] listening on 0.0.0.0:' + PORT);
+  console.log('[FC Pack] Data: ' + DATA_DIR);
 });
