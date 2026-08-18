@@ -112,7 +112,18 @@ const server = http.createServer(async (req, res) => {
   try {
     // API
     if (p === '/api/health') {
-      return send(res, 200, { ok: true, time: Date.now(), dataDir: DATA_DIR });
+      let ver = '2.2.0';
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+        if (pkg.version) ver = pkg.version;
+      } catch (_) {}
+      return send(res, 200, {
+        ok: true,
+        time: Date.now(),
+        dataDir: DATA_DIR,
+        version: ver,
+        build: 'admin-rank-set'
+      });
     }
 
     if (p === '/api/register' && req.method === 'POST') {
@@ -297,9 +308,15 @@ const server = http.createServer(async (req, res) => {
     }
     const ext = path.extname(filePath).toLowerCase();
     const type = MIME[ext] || 'application/octet-stream';
+    // html/js/css: luôn no-cache để Railway update hiện ngay (tránh cache cũ)
+    const noCache = ['.html', '.js', '.css', '.json'].includes(ext);
     res.writeHead(200, {
       'Content-Type': type,
-      'Cache-Control': (ext === '.html' || ext === '.js') ? 'no-cache' : 'public, max-age=86400',
+      'Cache-Control': noCache
+        ? 'no-store, no-cache, must-revalidate, max-age=0'
+        : 'public, max-age=86400',
+      'Pragma': noCache ? 'no-cache' : undefined,
+      'Expires': noCache ? '0' : undefined,
       'Access-Control-Allow-Origin': '*'
     });
     fs.createReadStream(filePath).pipe(res);
