@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e17" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>HD MOBILE Việt Nam</title>
+  <link rel="stylesheet" href="css/style.css?v=2.2.1" />
+  <link rel="stylesheet" href="css/cards.css?v=2.2.1" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- Login Overlay -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-box">
+      <div class="login-logo">
+        <span class="t-hd">HD</span> <span class="t-mobile">MOBILE</span>
+        <div class="home-sub">VIỆT NAM</div>
+      </div>
+      <h2>Đăng nhập / Đăng ký</h2>
+      <input type="text" id="login-user" placeholder="Tên đăng nhập" autocomplete="username" />
+      <input type="password" id="login-pass" placeholder="Mật khẩu" autocomplete="current-password" />
+      <div class="login-actions">
+        <button id="btn-login" class="btn-open">Đăng nhập</button>
+        <button id="btn-register" class="btn-daily">Đăng ký</button>
+      </div>
+      <p class="login-hint">Chạy bằng <b>npm start</b> để bật ☁️ cloud save · Admin chính: <b>CongHoang</b> · Admin phó (hạn chế): <b>anhduc</b></p>
+    </div>
+  </div>
+
+  <div id="app" class="app-locked">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-text"><span class="logo-hd">HD</span> <span class="logo-mobile">MOBILE</span></span>
+        <span class="logo-sub">VIỆT NAM</span>
+      </div>
+      <div class="currency">
+        <div class="currency-item coins" title="Xu">
+          <span class="icon">🪙</span>
+          <span id="coins-display">500000</span>
+        </div>
+        <div class="currency-item gems" title="Gem">
+          <span class="icon">💎</span>
+          <span id="gems-display">5000</span>
+        </div>
+        <div class="currency-item cd" title="CD (nạp)">
+          <span class="icon">💠</span>
+          <span id="cd-display">0</span>
+        </div>
+      </div>
+      <div class="header-user">
+        <span id="user-name-display" class="user-name"></span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-gift" class="btn-icon" title="Giftcode">🎁</button>
+        <button id="nav-fc-hub" class="btn-icon" title="FC Hub">🏟️</button>
+        <button id="nav-events" class="btn-icon" title="Sự kiện">📅</button>
+        <button id="nav-quests" class="btn-icon" title="Nhiệm vụ">📋</button>
+        <button id="nav-profile" class="btn-icon" title="Hồ sơ / BXH">👤</button>
+        <button id="nav-settings" class="btn-icon" title="Cài đặt">⚙️</button>
+        <button id="btn-admin" class="btn-icon hidden" title="Admin">🛠️</button>
+        <button id="btn-database" class="btn-icon" title="Danh sách cầu thủ">📋</button>
+        <button id="btn-inventory" class="btn-icon" title="Kho cầu thủ">📦</button>
+        <button id="btn-logout" class="btn-icon hidden" title="Đăng xuất">🚪</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- HOME MENU - phong cách HD Mobile -->
+      <section id="home" class="section active">
+        <div class="home-hero">
+          <h1 class="home-title"><span class="t-hd">HD</span> <span class="t-mobile">MOBILE</span></h1>
+          <p class="home-sub">VIỆT NAM</p>
+        </div>
+        <div class="home-cards home-cards-6">
+          <button class="home-card hc-pack" id="nav-shop">
+            <div class="hc-glow"></div>
+            <div class="hc-icon-wrap"><div class="hc-pack-visual">HD</div></div>
+            <h2>MỞ THẺ</h2>
+            <p>MỞ THẺ NHẬN CẦU THỦ</p>
+          </button>
+          <button class="home-card hc-market" id="nav-market">
+            <div class="hc-glow"></div>
+            <div class="hc-icon-wrap hc-market-ui">
+              <div class="hc-market-preview">
+                <span>TRANSFER MARKET</span>
+                <div class="hc-price-row"><b>ST</b> 125.000.000</div>
+              </div>
+            </div>
+            <h2>THỊ TRƯỜNG</h2>
+            <p>MUA & BÁN CẦU THỦ</p>
+          </button>
+          <button class="home-card hc-squad" id="nav-squad">
+            <div class="hc-glow"></div>
+            <div class="hc-icon-wrap"><span style="font-size:2.5rem">📦</span></div>
+            <h2>KHO CẦU THỦ</h2>
+            <p>QUẢN LÍ & HUẤN LUYỆN</p>
+          </button>
+          <button class="home-card hc-lineup" id="nav-lineup">
+            <div class="hc-glow"></div>
+            <div class="hc-icon-wrap"><span style="font-size:2.5rem">⚽</span></div>
+            <h2>ĐỘI HÌNH</h2>
+            <p>XẾP ĐỘI & ĐÁ TRẬN</p>
+          </button>
+          <button class="home-card hc-starbook" id="nav-starbook">
+            <div class="hc-glow"></div>
+            <div class="hc-icon-wrap"><span style="font-size:2.5rem">📖</span></div>
+            <h2>SỔ SIÊU SAO</h2>
+            <p>BỘ SƯU TẬP CẦU THỦ</p>
+          </button>
+          <button class="home-card hc-topup" id="nav-topup">
+            <div class="hc-glow"></div>
+            <div class="hc-icon-wrap"><span style="font-size:2.5rem">💳</span></div>
+            <h2>NẠP TIỀN</h2>
+            <p>NẠP CD · MỞ SSS CAO CẤP</p>
+          </button>
+        </div>
+        <div class="home-rank-bar" id="home-rank-bar">
+          <span id="home-rank-text">Rank: NHỰA ★0</span>
+        </div>
+        <div id="event-banner" class="event-banner hidden"></div>
+      </section>
+
+      <!-- Pack Shop -->
+      <section id="shop" class="section">
+        <div id="store-rotation" class="event-banner"></div>
+        <p class="section-desc pack-odds-hint">Odds công khai: xem tooltip từng pack · Pity ≥115 sau 40 pack đen</p>
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">Mở Thẻ</h1>
+        </div>
+        <p class="section-desc">OVR ≥ 115 sẽ có animation Hầm đặc biệt!</p>
+        
+        <div class="packs-grid">
+          <div class="pack-card" data-pack="1" data-cost-coins="5000" data-cost-gems="0">
+            <div class="pack-visual pack-1">
+              <div class="pack-glow"></div>
+              <span class="pack-count">1</span>
+            </div>
+            <h3>Pack 1 Cầu Thủ</h3>
+            <p class="pack-info">1 cầu thủ ngẫu nhiên</p>
+            <div class="pack-price">
+              <span class="price-coins">🪙 5,000</span>
+            </div>
+            <button class="btn-open" data-pack="1">Mở Pack</button>
+          </div>
+
+          <div class="pack-card" data-pack="2" data-cost-coins="12000" data-cost-gems="0">
+            <div class="pack-visual pack-2">
+              <div class="pack-glow"></div>
+              <span class="pack-count">2</span>
+            </div>
+            <h3>Pack 2 Cầu Thủ</h3>
+            <p class="pack-info">2 cầu thủ · Tỉ lệ cao hơn</p>
+            <div class="pack-price">
+              <span class="price-coins">🪙 12,000</span>
+            </div>
+            <button class="btn-open" data-pack="2">Mở Pack</button>
+          </div>
+
+          <div class="pack-card featured" data-pack="3" data-cost-coins="0" data-cost-gems="50">
+            <div class="pack-badge">HOT</div>
+            <div class="pack-visual pack-3">
+              <div class="pack-glow"></div>
+              <span class="pack-count">3</span>
+            </div>
+            <h3>Pack 3 Cầu Thủ</h3>
+            <p class="pack-info">3 cầu thủ · Cơ hội TOTY/TOTS</p>
+            <div class="pack-price">
+              <span class="price-gems">💎 50</span>
+            </div>
+            <button class="btn-open" data-pack="3">Mở Pack</button>
+          </div>
+
+          <div class="pack-card featured premium" data-pack="5" data-cost-coins="0" data-cost-gems="120">
+            <div class="pack-badge">PREMIUM</div>
+            <div class="pack-visual pack-5">
+              <div class="pack-glow"></div>
+              <span class="pack-count">5</span>
+            </div>
+            <h3>Pack 5 Cầu Thủ</h3>
+            <p class="pack-info">5 cầu thủ · Cơ hội GOLDEN DRAGON cao</p>
+            <div class="pack-price">
+              <span class="price-gems">💎 120</span>
+            </div>
+            <button class="btn-open" data-pack="5">Mở Pack</button>
+          </div>
+
+          <div class="pack-card featured" data-pack="1500" data-cost-coins="0" data-cost-gems="1500">
+            <div class="pack-badge">1.5K</div>
+            <div class="pack-visual pack-gem">
+              <div class="pack-glow"></div>
+              <span class="pack-count">3</span>
+            </div>
+            <h3>Pack 1.500 Gem</h3>
+            <p class="pack-info">3 cầu thủ · Tỉ lệ cao</p>
+            <div class="pack-price"><span class="price-gems">💎 1.500</span></div>
+            <button class="btn-open" data-pack="1500">Mở Pack</button>
+          </div>
+
+          <div class="pack-card featured" data-pack="5000" data-cost-coins="0" data-cost-gems="5000">
+            <div class="pack-badge">5K</div>
+            <div class="pack-visual pack-gem">
+              <div class="pack-glow"></div>
+              <span class="pack-count">5</span>
+            </div>
+            <h3>Pack 5.000 Gem</h3>
+            <p class="pack-info">5 cầu thủ · Cơ hội TOTY/ICON</p>
+            <div class="pack-price"><span class="price-gems">💎 5.000</span></div>
+            <button class="btn-open" data-pack="5000">Mở Pack</button>
+          </div>
+
+          <div class="pack-card featured premium" data-pack="12500" data-cost-coins="0" data-cost-gems="12500">
+            <div class="pack-badge">12.5K</div>
+            <div class="pack-visual pack-gem">
+              <div class="pack-glow"></div>
+              <span class="pack-count">8</span>
+            </div>
+            <h3>Pack 12.500 Gem</h3>
+            <p class="pack-info">8 cầu thủ · Cơ hội Hầm cao</p>
+            <div class="pack-price"><span class="price-gems">💎 12.500</span></div>
+            <button class="btn-open" data-pack="12500">Mở Pack</button>
+          </div>
+
+          <div class="pack-card featured premium" data-pack="22500" data-cost-coins="0" data-cost-gems="22500">
+            <div class="pack-badge">22.5K</div>
+            <div class="pack-visual pack-gem">
+              <div class="pack-glow"></div>
+              <span class="pack-count">12</span>
+            </div>
+            <h3>Pack 22.500 Gem</h3>
+            <p class="pack-info">12 cầu thủ · OVR 115+ dễ hơn</p>
+            <div class="pack-price"><span class="price-gems">💎 22.500</span></div>
+            <button class="btn-open" data-pack="22500">Mở Pack</button>
+          </div>
+
+          <div class="pack-card featured premium" data-pack="50000" data-cost-coins="0" data-cost-gems="50000">
+            <div class="pack-badge">50K 🔥</div>
+            <div class="pack-visual pack-gem">
+              <div class="pack-glow"></div>
+              <span class="pack-count">20</span>
+            </div>
+            <h3>Pack 50.000 Gem</h3>
+            <p class="pack-info">20 cầu thủ · Bảo đảm thẻ cao</p>
+            <div class="pack-price"><span class="price-gems">💎 50.000</span></div>
+            <button class="btn-open" data-pack="50000">Mở Pack</button>
+          </div>
+        </div>
+
+        <div class="daily-reward">
+          <button id="btn-daily" class="btn-daily">🎁 Nhận thưởng hàng ngày (+10,000 xu + 20 gem)</button>
+        </div>
+      </section>
+
+      
+      <!-- Thị trường chuyển nhượng -->
+      <section id="market" class="section">
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">Thị Trường CN</h1>
+        </div>
+        <p class="section-desc">Mua &amp; bán cầu thủ · Giá theo OVR &amp; mùa thẻ</p>
+        <div class="market-tabs">
+          <button class="market-tab active" data-mtab="buy" id="mtab-buy">🛒 Mua</button>
+          <button class="market-tab" data-mtab="sell" id="mtab-sell">💰 Bán của tôi</button>
+        </div>
+        <div class="market-filters">
+          <select id="market-sort">
+            <option value="price-desc">Giá cao → thấp</option>
+            <option value="price-asc">Giá thấp → cao</option>
+            <option value="ovr-desc">OVR cao → thấp</option>
+            <option value="ovr-asc">OVR thấp → cao</option>
+          </select>
+          <select id="market-filter-season">
+            <option value="all">Tất cả mùa</option>
+            <option value="Adminstration">Adminstration</option>
+            <option value="CREATION">CREATION</option>
+            <option value="ICON">ICON</option>
+            <option value="GOLDEN DRAGON">GOLDEN DRAGON</option>
+            <option value="TOTY">TOTY</option>
+            <option value="TOTS">TOTS</option>
+            <option value="Champions">Champions</option>
+            <option value="Heroes">Heroes</option>
+            <option value="World Cup">World Cup</option>
+            <option value="ASE">ASE</option>
+            <option value="Base">Base</option>
+          </select>
+          <button id="btn-market-refresh" class="btn-secondary" title="Làm mới danh sách mua">🔄 Làm mới</button>
+        </div>
+        <div id="market-grid" class="inventory-grid"></div>
+        <p id="market-empty" class="empty-msg">Không có cầu thủ nào.</p>
+      </section>
+
+      <!-- Inventory -->
+      <section id="inventory" class="section">
+        <div class="inventory-header">
+          <h1 class="section-title">Quản Lí Cầu Thủ</h1>
+          <div class="inventory-filters">
+            <select id="filter-season">
+              <option value="all">Tất cả mùa</option>
+              <option value="Adminstration">Adminstration</option>
+            <option value="CREATION">CREATION</option>
+              <option value="ICON">ICON</option>
+              <option value="Heroes">Heroes</option>
+              <option value="GOLDEN DRAGON">GOLDEN DRAGON</option>
+              <option value="TOTY">TOTY</option>
+              <option value="TOTS">TOTS</option>
+              <option value="Champions">Champions</option>
+              <option value="World Cup">World Cup</option>
+              <option value="GINGA">GINGA</option>
+              <option value="EURO">EURO</option>
+              <option value="ASE">ASE</option>
+              <option value="Base">Base</option>
+            </select>
+            <select id="filter-sort">
+              <option value="ovr-desc">OVR cao → thấp</option>
+              <option value="ovr-asc">OVR thấp → cao</option>
+              <option value="name">Tên A-Z</option>
+              <option value="fav">⭐ Yêu thích trước</option>
+            </select>
+          </div>
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+        </div>
+        <div id="inventory-grid" class="inventory-grid"></div>
+        <p id="inventory-empty" class="empty-msg">Chưa có cầu thủ nào. Hãy mở pack!</p>
+      </section>
+
+      <!-- Player Database / Danh sách cầu thủ -->
+      <section id="database" class="section">
+        <div class="inventory-header">
+          <h1 class="section-title">Danh sách Cầu thủ</h1>
+          <span id="db-count" class="db-count"></span>
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+        </div>
+        <div class="db-filters">
+          <input type="text" id="db-search" placeholder="🔍 Tìm tên cầu thủ..." class="db-search" />
+          <select id="db-filter-season">
+            <option value="all">Tất cả mùa</option>
+            <option value="Adminstration">Adminstration</option>
+            <option value="CREATION">CREATION</option>
+            <option value="ICON">ICON</option>
+              <option value="GOLDEN DRAGON">GOLDEN DRAGON</option>
+            <option value="TOTY">TOTY</option>
+            <option value="TOTS">TOTS</option>
+            <option value="Champions">Champions</option>
+            <option value="World Cup">World Cup</option>
+            <option value="GINGA">GINGA</option>
+            <option value="EURO">EURO</option>
+            <option value="ASE">ASE</option>
+            <option value="Base">Base</option>
+          </select>
+          <select id="db-filter-nation">
+            <option value="all">Tất cả quốc gia</option>
+            <option value="Vietnam">🇻🇳 Việt Nam</option>
+            <option value="Brazil">🇧🇷 Brazil</option>
+            <option value="France">🇫🇷 Pháp</option>
+            <option value="England">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Anh</option>
+            <option value="Spain">🇪🇸 Tây Ban Nha</option>
+            <option value="Germany">🇩🇪 Đức</option>
+            <option value="Argentina">🇦🇷 Argentina</option>
+            <option value="Portugal">🇵🇹 Bồ Đào Nha</option>
+            <option value="Netherlands">🇳🇱 Hà Lan</option>
+            <option value="Italy">🇮🇹 Ý</option>
+            <option value="Belgium">🇧🇪 Bỉ</option>
+            <option value="Norway">🇳🇴 Na Uy</option>
+            <option value="South Korea">🇰🇷 Hàn Quốc</option>
+            <option value="Japan">🇯🇵 Nhật Bản</option>
+          </select>
+          <select id="db-filter-pos">
+            <option value="all">Tất cả vị trí</option>
+            <option value="GK">GK</option>
+            <option value="CB">CB</option>
+            <option value="LB">LB</option>
+            <option value="RB">RB</option>
+            <option value="CDM">CDM</option>
+            <option value="CM">CM</option>
+            <option value="CAM">CAM</option>
+            <option value="LW">LW</option>
+            <option value="RW">RW</option>
+            <option value="ST">ST</option>
+          </select>
+          <select id="db-sort">
+            <option value="ovr-desc">OVR cao → thấp</option>
+            <option value="ovr-asc">OVR thấp → cao</option>
+            <option value="name">Tên A-Z</option>
+            <option value="season">Theo mùa</option>
+          </select>
+        </div>
+        <div id="database-grid" class="inventory-grid"></div>
+        <p id="database-empty" class="empty-msg">Không tìm thấy cầu thủ nào.</p>
+      </section>
+
+
+      <!-- Đội hình + Match -->
+      <section id="lineup" class="section">
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">Đội hình · 4-3-3</h1>
+        </div>
+        <div class="rank-panel" id="lineup-rank"></div>
+        <div class="pitch-wrap">
+          <div class="pitch" id="lineup-pitch"></div>
+        </div>
+        <p class="section-desc">Chọn vị trí → chọn cầu thủ từ kho. OVR đội: <strong id="squad-ovr">0</strong></p>
+        <div class="lineup-actions">
+          <button id="btn-auto-lineup" class="btn-secondary">⚡ Tự xếp đội</button>
+          <button id="btn-clear-lineup" class="btn-secondary">Xóa đội hình</button>
+          <button id="btn-start-match" class="btn-open">⚽ Đá trận xếp hạng</button>
+          <button id="btn-series-match" class="btn-secondary">Best of 3</button>
+          <button id="btn-boss-match" class="btn-secondary">🐉 Boss Battle</button>
+          <button id="btn-rivals" class="btn-secondary">Rivals</button>
+          <button id="btn-champs" class="btn-secondary">Champs</button>
+        </div>
+        <div class="lineup-meta-row">
+          <label>Đội hình
+            <select id="formation-select" class="db-search">
+              <option value="4-3-3">4-3-3</option>
+              <option value="4-2-3-1">4-2-3-1</option>
+              <option value="3-5-2">3-5-2</option>
+            </select>
+          </label>
+          <div id="chem-info" class="chem-info">Hóa học: —</div>
+        </div>
+        <p class="section-desc">OVR đội đã gồm hóa học + đội trưởng. Chọn đội trưởng trong kho (nút trên thẻ / auto = thẻ cao nhất).</p>
+        <div id="lineup-picker" class="lineup-picker hidden">
+          <div class="lineup-picker-head">
+            <span id="picker-pos-label">Chọn cầu thủ</span>
+            <button id="btn-picker-close" class="btn-secondary">Đóng</button>
+          </div>
+          <div id="picker-list" class="picker-list"></div>
+        </div>
+      </section>
+
+      <!-- Match overlay -->
+      <div id="match-overlay" class="overlay hidden">
+        <div class="match-container">
+          <button type="button" id="btn-match-x" class="match-x" title="Thoát">×</button>
+          <div class="match-scoreboard">
+            <span id="match-home-name">BẠN</span>
+            <span class="match-score" id="match-score">0 - 0</span>
+            <span id="match-away-name">ĐỐI THỦ</span>
+          </div>
+          <div class="match-time" id="match-time">00:00</div>
+          <div id="match-mvp" class="match-mvp hidden"></div>
+          <div id="match-stats" class="match-stats"></div>
+          <canvas id="match-canvas" width="360" height="520"></canvas>
+          <div class="match-log" id="match-log"></div>
+          <button type="button" id="btn-match-skip" class="btn-open btn-match-skip">⏭ Skip trận đấu</button>
+          <button type="button" id="btn-match-close" class="btn-open btn-match-close" style="display:none">🚪 Thoát trận đấu</button>
+        </div>
+      </div>
+
+      <!-- Sổ siêu sao -->
+      <section id="starbook" class="section">
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">Sổ Siêu Sao</h1>
+        </div>
+
+        <!-- Sổ Siêu Sao Cao Cấp (CD) -->
+        <div class="sss-premium-block">
+          <h2 class="sss-title">⭐ Sổ Siêu Sao Cao Cấp <span class="sss-hint">Mở album bằng CD</span></h2>
+          <p class="sss-sub">Mở gói album cao cấp · Tiến độ riêng · Không gồm thẻ Adminstration</p>
+          <div id="sss-premium-progress" class="sss-premium-progress"></div>
+          <div id="sss-premium-grid" class="sss-premium-grid"></div>
+        </div>
+
+        <!-- Sổ thường -->
+        <h2 class="sss-title sss-normal-title">📖 Sổ Siêu Sao thường</h2>
+        <div class="starbook-progress">
+          <div class="sb-bar-wrap"><div class="sb-bar" id="sb-bar"></div></div>
+          <div id="sb-stats" class="sb-stats">0 / 0 (0%)</div>
+        </div>
+        <div id="sb-milestones" class="sb-milestones"></div>
+        <div class="db-filters">
+          <input type="text" id="sb-search" placeholder="🔍 Tìm cầu thủ..." class="db-search" />
+          <select id="sb-filter">
+            <option value="all">Tất cả</option>
+            <option value="owned">Đã có</option>
+            <option value="missing">Chưa có</option>
+          </select>
+        </div>
+        <div id="starbook-grid" class="inventory-grid"></div>
+      </section>
+
+      <!-- Nạp tiền -->
+      <section id="topup" class="section">
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">Nạp & Cửa hàng CD</h1>
+        </div>
+        <p class="section-desc">Nạp nhận <strong>CD</strong> · Đổi CD lấy <strong>vàng (xu)</strong>, <strong>gem</strong>, pack, Rank Protect, BP Premium · Mở Sổ Siêu Sao Cao Cấp.</p>
+        <p id="cd-shop-balance" class="section-desc">CD hiện có: —</p>
+        <h2 class="subsection-title">💠 Đổi CD</h2>
+        <div id="cd-shop-grid" class="topup-grid"></div>
+        <h2 class="subsection-title">💳 Nạp CD</h2>
+        <div id="topup-grid" class="topup-grid"></div>
+      </section>
+
+      <!-- Giftcode -->
+      
+      
+      <section id="fc-hub" class="section">
+        <h2 class="section-title">🏟️ FC Hub</h2>
+        <p id="club-level-info" class="section-desc">Club Lv —</p>
+        <div class="hub-grid">
+          <div class="hub-tile">
+            <h3>Evolution</h3>
+            <div id="evo-list"></div>
+          </div>
+          <div class="hub-tile">
+            <h3>SBC</h3>
+            <div id="sbc-list"></div>
+          </div>
+          <div class="hub-tile">
+            <h3>Battle Pass</h3>
+            <div id="bp-track"></div>
+          </div>
+          <div class="hub-tile">
+            <h3>Objective Chains</h3>
+            <div id="chain-list"></div>
+          </div>
+          <div class="hub-tile">
+            <h3>Hall of Fame (≥120)</h3>
+            <div id="hof-list"></div>
+          </div>
+          <div class="hub-tile">
+            <h3>Tactics Board</h3>
+            <div id="tactics-panel" class="tactics-panel">
+              <label>Build-up <input type="range" id="tac-buildup" min="0" max="100" value="50" /></label>
+              <label>Chance <input type="range" id="tac-chance" min="0" max="100" value="50" /></label>
+              <label>Width <input type="range" id="tac-width" min="0" max="100" value="50" /></label>
+              <label>Depth <input type="range" id="tac-depth" min="0" max="100" value="50" /></label>
+              <label>Style
+                <select id="tac-style">
+                  <option>Balanced</option>
+                  <option>Attacking</option>
+                  <option>Defensive</option>
+                </select>
+              </label>
+              <button id="btn-save-tactics" class="btn-open">Lưu Tactics</button>
+            </div>
+          </div>
+          <div class="hub-tile">
+            <h3>Compete</h3>
+            <p id="rivals-info" class="tf-sub"></p>
+            <button id="btn-rivals" class="btn-secondary">Rivals Match</button>
+            <button id="btn-champs" class="btn-secondary">Champs (5 trận/tuần)</button>
+            <button id="btn-club-code" class="btn-secondary">Export Club Code</button>
+            <button id="btn-tutorial" class="btn-secondary">Tutorial</button>
+          </div>
+          <div class="hub-tile">
+            <h3>🤝 Giao hữu bạn bè</h3>
+            <p class="tf-sub">Không ±sao rank · Đá với đội thật của bạn</p>
+            <div class="friendly-box">
+              <button type="button" id="btn-friendly-create" class="btn-open">Tạo phòng (lấy mã)</button>
+              <p class="tf-sub">Mã phòng: <b id="friendly-code-out">—</b></p>
+              <div class="friendly-join-row">
+                <input type="text" id="friendly-code-in" placeholder="Nhập mã phòng / paste..." maxlength="80" />
+                <button type="button" id="btn-friendly-join" class="btn-secondary">Vào phòng</button>
+              </div>
+              <button type="button" id="btn-friendly-club" class="btn-secondary">Đá bằng Club Code bạn bè</button>
+            </div>
+            <p class="tf-sub">Cloud ON: bạn bè khác máy vào bằng mã phòng. Local: dùng Club Code.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="quests" class="section">
+        <h2 class="section-title">📋 Nhiệm vụ</h2>
+        <p class="section-desc">Nhiệm vụ ngày / tuần · Login streak · Pity counter</p>
+        <div id="event-banner-2" class="event-banner"></div>
+        <p id="rank-protect-info" class="section-desc"></p>
+        <div id="quest-list" class="quest-list"></div>
+      </section>
+
+      <section id="profile" class="section">
+        <h2 class="section-title">👤 Hồ sơ & Bảng xếp hạng</h2>
+        <p id="showcase-meta" class="section-desc">—</p>
+        <h3 class="subsection-title">Đội hình showcase (11 thẻ OVR cao nhất)</h3>
+        <div id="showcase-grid" class="cards-grid"></div>
+        <h3 class="subsection-title">BXH local (các account trên máy)</h3>
+        <div id="leaderboard-list" class="leaderboard-list"></div>
+        <h3 class="subsection-title">Bảng giftcode công khai</h3>
+        <div id="gift-board-list" class="gift-board-list"></div>
+      </section>
+
+      <section id="settings" class="section">
+        <h2 class="section-title">⚙️ Cài đặt</h2>
+        <div class="settings-panel">
+          <button id="btn-export-save" class="btn-open">📤 Xuất save (JSON)</button>
+          <button id="btn-import-save" class="btn-secondary">📥 Nhập save</button>
+          <input type="file" id="import-save-file" accept="application/json,.json" class="hidden" />
+          <button id="btn-reduced-motion" class="btn-secondary">🎬 Bật/tắt giảm animation</button>
+          <button id="btn-seed-demo" class="btn-secondary">🧪 Seed account demo (thẻ test)</button>
+          <p class="section-desc">Peak rank mùa: xem trong save · Export để backup trước khi xóa trình duyệt.</p>
+          <div class="changelog">
+            <h3 class="subsection-title">Changelog</h3>
+            <ul class="changelog-list">
+              <li>Replay walkout thẻ ≥115 trong kho</li>
+              <li>Khóa / yêu thích thẻ — chặn bán &amp; fodder</li>
+              <li>So sánh 2 thẻ (OVR · stat · PlayStyle)</li>
+              <li>Trận đấu: kiểm soát bóng + sút ảnh hưởng tỉ số</li>
+              <li>Rank Protect 3 lần/ngày khi thua</li>
+              <li>Admin chính CongHoang · Admin phó anhduc (giới hạn giftcode)</li>
+              <li>Nhiệm vụ ngày/tuần · Pity · Chemistry · Đội hình 3 sơ đồ</li>
+            </ul>
+            <p class="section-desc">Cộng đồng local: nhiều account trên cùng máy · BXH tab Hồ sơ · Giftcode public board.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="gift" class="section">
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">Giftcode</h1>
+        </div>
+        <p class="section-desc">Nhập mã quà tặng để nhận xu, gem, CD, pack hoặc cầu thủ.</p>
+        <div class="gift-box">
+          <input type="text" id="gift-input" class="db-search" placeholder="Nhập giftcode..." maxlength="32" />
+          <button id="btn-gift-redeem" class="btn-open">Nhận quà</button>
+        </div>
+      </section>
+
+      <!-- Admin -->
+      <section id="admin" class="section">
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">Admin Panel</h1>
+        </div>
+        <p class="section-desc"><b>CongHoang</b> full · <b>anhduc</b> chỉ giftcode giới hạn.</p>
+
+        <h2 class="subsection-title">Giftcode</h2>
+        <div class="admin-form">
+          <input type="text" id="admin-code" placeholder="Mã code (vd: VIP2026)" class="db-search" />
+          <div class="admin-row">
+            <input type="number" id="admin-coins" placeholder="Xu thưởng" class="db-search" min="0" />
+            <input type="number" id="admin-gems" placeholder="Gem thưởng" class="db-search" min="0" />
+          </div>
+          <div class="admin-row">
+            <input type="number" id="admin-cd" placeholder="CD thưởng (tặng)" class="db-search" min="0" />
+            <input type="text" id="admin-pack" placeholder="Pack ID (1,2,3,5,1500...)" class="db-search" />
+          </div>
+          <div class="admin-row">
+            <input type="text" id="admin-player" placeholder="ID/Tên cầu thủ (vd: Công Hoàng)" class="db-search" />
+          </div>
+          <input type="number" id="admin-maxuses" placeholder="Số lượt dùng (0 = không giới hạn)" class="db-search" min="0" />
+          <button id="btn-admin-create" class="btn-open">Tạo Giftcode</button>
+        </div>
+        <h3 style="margin:20px 0 10px;font-family:Oswald,sans-serif">Danh sách code</h3>
+        <div id="admin-gift-list"></div>
+
+        <div id="admin-full-only" class="admin-full-panel">
+          <h2 class="subsection-title">📅 Sự kiện cày (Admin chính)</h2>
+          <p class="tf-sub">Tạo event có nhiệm vụ + đổi quà. Người chơi vào tab Sự kiện.</p>
+          <div class="admin-form">
+            <input type="text" id="ev-name" placeholder="Tên sự kiện" class="db-search" />
+            <input type="text" id="ev-desc" placeholder="Mô tả ngắn" class="db-search" />
+            <div class="admin-row">
+              <input type="number" id="ev-days" placeholder="Số ngày kéo dài" class="db-search" min="1" value="7" />
+            </div>
+            <p class="tf-sub">Nhiệm vụ (mỗi dòng: tên | loại open_pack/win_match/train | target | xu | gem | cd)</p>
+            <textarea id="ev-quests" class="admin-textarea" rows="3" placeholder="Mở 10 pack|open_pack|10|50000|20|0"></textarea>
+            <p class="tf-sub">Đổi quà (mỗi dòng: tên | costCD | xu thưởng | gem thưởng | packId)</p>
+            <textarea id="ev-shop" class="admin-textarea" rows="3" placeholder="Rương event|30|0|0|3"></textarea>
+            <button type="button" id="btn-ev-create" class="btn-open">Tạo / Cập nhật sự kiện</button>
+          </div>
+          <div id="admin-event-list"></div>
+
+          <h2 class="subsection-title">🃏 Mùa thẻ mới + tỉ lệ (Admin chính)</h2>
+          <p class="tf-sub">Tạo mùa + set tỉ lệ xuất hiện trong pack. Có thể bán pack chỉ bằng CD.</p>
+          <div class="admin-form">
+            <input type="text" id="season-name" placeholder="Tên mùa (vd: TET 2026)" class="db-search" />
+            <div class="admin-row">
+              <input type="number" id="season-rate" placeholder="Tỉ lệ % trong pack (vd: 15)" class="db-search" min="0" max="100" step="0.1" />
+              <input type="number" id="season-ovr-min" placeholder="OVR min thẻ ảo" class="db-search" min="70" value="100" />
+              <input type="number" id="season-ovr-max" placeholder="OVR max thẻ ảo" class="db-search" min="70" value="118" />
+            </div>
+            <div class="admin-row">
+              <label class="admin-check"><input type="checkbox" id="season-cd-only" /> Pack mùa chỉ mua bằng CD</label>
+              <input type="number" id="season-cd-cost" placeholder="Giá CD / pack" class="db-search" min="0" value="40" />
+              <input type="number" id="season-pack-count" placeholder="Số thẻ / pack" class="db-search" min="1" value="3" />
+            </div>
+            <button type="button" id="btn-season-create" class="btn-open">Tạo mùa thẻ</button>
+          </div>
+          <div id="admin-season-list"></div>
+
+          <h2 class="subsection-title">🏅 Tự thiết lập Rank (Admin chính)</h2>
+          <p class="tf-sub">Chỉ <b>CongHoang</b> · Set rank + số sao cho tài khoản của mình (không ảnh hưởng người chơi khác).</p>
+          <div class="admin-form" id="admin-rank-form">
+            <p id="admin-rank-current" class="tf-sub">Rank hiện tại: —</p>
+            <div class="admin-row">
+              <select id="admin-rank-id" class="db-search">
+                <option value="nhua">NHỰA</option>
+                <option value="dong">ĐỒNG</option>
+                <option value="bac">BẠC</option>
+                <option value="vang">VÀNG</option>
+                <option value="thegioi">THẾ GIỚI</option>
+                <option value="huyenthoai">HUYỀN THOẠI</option>
+                <option value="caothu">CAO THỦ / ĐẠI RAU MÁ</option>
+                <option value="chienthan">CHIẾN THẦN NEM CHUA</option>
+              </select>
+              <input type="number" id="admin-rank-stars" class="db-search" min="0" max="9999" value="0" placeholder="Số sao" />
+            </div>
+            <p class="tf-sub">Gợi ý: NHỰA–HUYỀN THOẠI max 5★ · CAO THỦ 0–60★ (51+ = ĐẠI RAU MÁ) · CHIẾN THẦN 0–9999★</p>
+            <div class="admin-row">
+              <button type="button" id="btn-admin-set-rank" class="btn-open">Áp dụng Rank</button>
+              <button type="button" id="btn-admin-rank-max" class="btn-secondary">Max Chiến Thần 200★</button>
+              <button type="button" id="btn-admin-rank-reset" class="btn-secondary">Reset NHỰA 0★</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="events" class="section">
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">📅 Sự kiện</h1>
+        </div>
+        <p class="section-desc">Nhiệm vụ event · Đổi quà · Pack mùa (CD)</p>
+        <div id="events-panel"></div>
+      </section>
+    </main>
+
+    <!-- Pack Opening Overlay -->
+    <div id="opening-overlay" class="overlay hidden">
+      <div class="opening-container">
+        <div id="pack-animation" class="pack-animation">
+          <div class="pack-box">
+            <div class="pack-lid"></div>
+            <div class="pack-body"></div>
+          </div>
+        </div>
+        <div id="cards-reveal" class="cards-reveal hidden"></div>
+        <div id="walkout-stage" class="walkout-stage hidden">
+          <div class="tunnel">
+            <div class="fire-col fire-left"></div>
+            <div class="fire-col fire-right"></div>
+            <div class="tunnel-path"></div>
+            <div id="walkout-reveal-info" class="walkout-reveal-info">
+              <div id="wr-nation" class="wr-line wr-nation"></div>
+              <div id="wr-pos" class="wr-line wr-pos"></div>
+              <div id="wr-club" class="wr-line wr-club"></div>
+            </div>
+            <div id="walkout-card" class="walkout-card"></div>
+            <div class="walkout-text">
+              <span id="walkout-name"></span>
+              <span id="walkout-ovr"></span>
+            </div>
+          </div>
+        </div>
+        <button id="btn-skip" class="btn-skip hidden">Bỏ qua</button>
+        <button id="btn-continue" class="btn-continue hidden">Tiếp tục</button>
+      </div>
+    </div>
+
+    <!-- Player Detail Modal -->
+    <div id="player-modal" class="modal hidden">
+      <div class="modal-content">
+        <button class="modal-close" id="modal-close">×</button>
+        <div id="modal-card"></div>
+        <div id="modal-info" class="modal-info"></div>
+        <div id="modal-playstyles" class="modal-playstyles"></div>
+        <div id="modal-stats" class="modal-stats"></div>
+        <div class="modal-actions">
+          <div id="train-level-info" class="upgrade-info hidden"></div>
+          <button id="btn-train-player" class="btn-train hidden">🏋️ Huấn luyện</button>
+          <div id="upgrade-info" class="upgrade-info hidden"></div>
+          <button id="btn-upgrade-player" class="btn-upgrade hidden">⬆️ Nâng cấp · 100.000 🪙</button>
+          <button id="btn-sell-player" class="btn-sell hidden">💰 Bán cầu thủ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Training Panel -->
+    <div id="train-panel" class="modal hidden">
+      <div class="modal-content train-modal">
+        <button class="modal-close" id="btn-train-close">×</button>
+        <h2 class="train-title">🏋️ Huấn luyện cầu thủ</h2>
+        <p class="train-desc">Dùng cầu thủ khác làm nguyên liệu để nhận EXP. Cấp tối đa <strong>30</strong>.</p>
+        <div id="train-info" class="train-info"></div>
+        <div class="train-fodder-header">Chọn nguyên liệu (OVR thấp → cao)</div>
+        <div class="train-auto-btns">
+          <button type="button" id="btn-train-auto" class="btn-train-auto">⚡ Tự chọn (đủ 1 cấp)</button>
+          <button type="button" id="btn-train-auto-max" class="btn-train-auto">⚡ Tự chọn tối đa</button>
+          <button type="button" id="btn-train-clear" class="btn-train-clear">Bỏ chọn</button>
+        </div>
+        <div id="train-fodder-list" class="train-fodder-list"></div>
+        <button id="btn-train-confirm" class="btn-train-confirm">Huấn luyện</button>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  
+  <!-- Mobile bottom navigation -->
+  <nav id="mobile-tabbar" class="mobile-tabbar" aria-label="Menu mobile">
+    <button type="button" class="mtab" data-go="home" title="Home">🏠<span>Home</span></button>
+    <button type="button" class="mtab" data-go="shop" title="Pack">📦<span>Pack</span></button>
+    <button type="button" class="mtab" data-go="inventory" title="Kho">🃏<span>Kho</span></button>
+    <button type="button" class="mtab" data-go="lineup" title="Đội">⚽<span>Đội</span></button>
+    <button type="button" class="mtab" data-go="fc-hub" title="Hub">🏟️<span>Hub</span></button>
+    <button type="button" class="mtab" data-go="more" title="Thêm">☰<span>Thêm</span></button>
+  </nav>
+  <div id="mobile-more-sheet" class="mobile-sheet hidden">
+    <div class="mobile-sheet-backdrop" data-close-sheet></div>
+    <div class="mobile-sheet-panel">
+      <div class="mobile-sheet-handle"></div>
+      <button type="button" class="msheet-btn" data-go="market">🛒 Thị trường</button>
+      <button type="button" class="msheet-btn" data-go="starbook">⭐ Sổ siêu sao</button>
+      <button type="button" class="msheet-btn" data-go="events">📅 Sự kiện</button>
+      <button type="button" class="msheet-btn" data-go="quests">📋 Nhiệm vụ</button>
+      <button type="button" class="msheet-btn" data-go="profile">👤 Hồ sơ / BXH</button>
+      <button type="button" class="msheet-btn" data-go="settings">⚙️ Cài đặt</button>
+      <button type="button" class="msheet-btn" data-go="database">📚 Database</button>
+      <button type="button" class="msheet-btn" id="msheet-gift">🎁 Giftcode</button>
+      <button type="button" class="msheet-btn" id="msheet-admin">🛠️ Admin</button>
+      <button type="button" class="msheet-btn danger" id="msheet-logout">🚪 Đăng xuất</button>
+      <button type="button" class="msheet-btn" data-close-sheet>Đóng</button>
+    </div>
+  </div>
+
+  <script src="js/playstyles.js?v=2.2.1"></script>
+  <script src="js/players.js?v=2.2.1"></script>
+  <script src="js/modes.js?v=2.2.1"></script>
+  <script src="js/cloud.js?v=2.2.1"></script>
+  <script src="js/features.js?v=2.2.1"></script>
+  <script src="js/game.js?v=2.2.1"></script>
+</body>
+</html>
