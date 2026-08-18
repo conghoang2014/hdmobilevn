@@ -1,7 +1,7 @@
 {
   "name": "fc-pack-game",
-  "version": "2.2.0",
-  "description": "HD Mobile FC Pack Game — admin rank set",
+  "version": "2.2.1",
+  "description": "HD Mobile FC Pack Game — admin rank inject 2.2.1",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

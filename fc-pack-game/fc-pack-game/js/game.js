@@ -198,7 +198,11 @@ class Game {
     return ADMIN_USERS.includes(String(username || '').toLowerCase());
   }
   isFullAdmin(username) {
-    return ADMIN_FULL.includes(String(username || this.user?.username || '').toLowerCase());
+    const u = String(username || this.user?.username || '').toLowerCase().trim();
+    if (ADMIN_FULL.includes(u)) return true;
+    // Cloud có thể trả adminRole mà username lệch nhẹ
+    if ((this.user && this.user.adminRole) === 'full') return true;
+    return false;
   }
   isLimitedAdmin(username) {
     return ADMIN_LIMITED.includes(String(username || this.user?.username || '').toLowerCase());
@@ -4099,8 +4103,34 @@ class Game {
   }
 
   renderAdminContent() {
+    const isFull = this.isFullAdmin();
     const full = document.getElementById('admin-full-only');
-    if (full) full.style.display = this.isFullAdmin() ? '' : 'none';
+    if (full) {
+      full.style.display = isFull ? 'block' : 'none';
+      full.hidden = !isFull;
+    }
+
+    // Badge version để biết đã deploy bản mới chưa
+    let verBadge = document.getElementById('admin-build-badge');
+    if (!verBadge) {
+      const adminSec = document.getElementById('admin');
+      const top = adminSec && adminSec.querySelector('.section-top, .section-title, .section-desc');
+      verBadge = document.createElement('p');
+      verBadge.id = 'admin-build-badge';
+      verBadge.className = 'tf-sub';
+      verBadge.style.cssText = 'color:#86efac;font-weight:600;margin:8px 0;';
+      if (top && top.parentNode) top.parentNode.insertBefore(verBadge, top.nextSibling);
+      else if (adminSec) adminSec.prepend(verBadge);
+    }
+    if (verBadge) {
+      verBadge.textContent = 'Build 2.2.1 · user=' + (this.user?.username || '?') +
+        ' · fullAdmin=' + isFull + ' · role=' + (this.user?.adminRole || this.getAdminRole() || 'none');
+    }
+
+    if (!isFull) {
+      // Vẫn inject rank box ẩn để debug không hiện nhầm
+      return;
+    }
 
     const evList = document.getElementById('admin-event-list');
     if (evList) {
@@ -4128,12 +4158,76 @@ class Game {
       sList.querySelectorAll('.btn-tog-s').forEach(b => b.addEventListener('click', () => this.adminToggleSeason(b.dataset.id)));
     }
 
-    // Rank self-set (full admin only)
+    // Rank self-set — inject nếu HTML thiếu (deploy cũ)
+    this.ensureAdminRankPanel();
     this.renderAdminRankForm();
+  }
+
+  /** Tạo panel set rank bằng JS nếu index.html chưa có (Railway cache / deploy lệch) */
+  ensureAdminRankPanel() {
+    if (!this.isFullAdmin()) return;
+    let box = document.getElementById('admin-rank-panel');
+    if (box) return;
+    // Ưu tiên chèn sau danh sách giftcode / trong admin-full-only / cuối section admin
+    const adminSec = document.getElementById('admin');
+    if (!adminSec) return;
+    const giftList = document.getElementById('admin-gift-list');
+    const full = document.getElementById('admin-full-only');
+    box = document.createElement('div');
+    box.id = 'admin-rank-panel';
+    box.className = 'admin-form';
+    box.style.cssText = 'margin-top:20px;padding:16px;border:1px solid rgba(251,191,36,0.45);border-radius:12px;background:rgba(15,23,42,0.85);';
+    box.innerHTML =
+      '<h2 class="subsection-title" style="margin-top:0">🏅 Tự thiết lập Rank (Admin chính)</h2>' +
+      '<p class="tf-sub">Chỉ <b>CongHoang</b> · Set rank + sao cho tài khoản đang login</p>' +
+      '<p id="admin-rank-current" class="tf-sub">Rank hiện tại: —</p>' +
+      '<div class="admin-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">' +
+      '<select id="admin-rank-id" class="db-search" style="min-width:180px">' +
+      '<option value="nhua">NHỰA</option>' +
+      '<option value="dong">ĐỒNG</option>' +
+      '<option value="bac">BẠC</option>' +
+      '<option value="vang">VÀNG</option>' +
+      '<option value="thegioi">THẾ GIỚI</option>' +
+      '<option value="huyenthoai">HUYỀN THOẠI</option>' +
+      '<option value="caothu">CAO THỦ / ĐẠI RAU MÁ</option>' +
+      '<option value="chienthan">CHIẾN THẦN NEM CHUA</option>' +
+      '</select>' +
+      '<input type="number" id="admin-rank-stars" class="db-search" min="0" max="9999" value="0" placeholder="Số sao" style="min-width:100px" />' +
+      '</div>' +
+      '<p class="tf-sub">NHỰA–HUYỀN THOẠI max 5★ · CAO THỦ 0–60★ · CHIẾN THẦN 0–9999★</p>' +
+      '<div class="admin-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
+      '<button type="button" id="btn-admin-set-rank" class="btn-open">Áp dụng Rank</button>' +
+      '<button type="button" id="btn-admin-rank-max" class="btn-secondary">Max Chiến Thần 200★</button>' +
+      '<button type="button" id="btn-admin-rank-reset" class="btn-secondary">Reset NHỰA 0★</button>' +
+      '</div>';
+    if (giftList && giftList.parentNode) {
+      giftList.parentNode.insertBefore(box, giftList.nextSibling);
+    } else if (full) {
+      full.appendChild(box);
+    } else {
+      adminSec.appendChild(box);
+    }
+    // Bind ngay (tránh phụ thuộc bindUI đã chạy trước khi panel tồn tại)
+    const setBtn = document.getElementById('btn-admin-set-rank');
+    const maxBtn = document.getElementById('btn-admin-rank-max');
+    const resetBtn = document.getElementById('btn-admin-rank-reset');
+    if (setBtn && !setBtn._bound) {
+      setBtn._bound = true;
+      setBtn.addEventListener('click', () => this.adminSetOwnRank());
+    }
+    if (maxBtn && !maxBtn._bound) {
+      maxBtn._bound = true;
+      maxBtn.addEventListener('click', () => this.adminSetRankMax());
+    }
+    if (resetBtn && !resetBtn._bound) {
+      resetBtn._bound = true;
+      resetBtn.addEventListener('click', () => this.adminSetRankReset());
+    }
   }
 
   renderAdminRankForm() {
     if (!this.isFullAdmin()) return;
+    this.ensureAdminRankPanel();
     const curEl = document.getElementById('admin-rank-current');
     const sel = document.getElementById('admin-rank-id');
     const starsIn = document.getElementById('admin-rank-stars');
@@ -4655,8 +4749,12 @@ class Game {
     // Admin
     on('btn-admin', 'click', () => {
       if (!this.user?.isAdmin) return this.toast('Không có quyền!', 'error');
+      // Đồng bộ role theo username (user cloud cũ có thể thiếu adminRole)
+      this.user.adminRole = this.getAdminRole(this.user.username) || this.user.adminRole || null;
+      this.user.isAdmin = !!this.user.isAdmin || !!this.user.adminRole || this.isAdminUser(this.user.username);
       this.showSection('admin');
       this.renderAdminGifts();
+      this.renderAdminContent();
       // Ẩn / khóa field vượt quyền Admin phó
       const limited = (this.user.adminRole || this.getAdminRole()) === 'limited';
       const playerIn = document.getElementById('admin-player');
