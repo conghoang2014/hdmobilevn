@@ -4127,6 +4127,75 @@ class Game {
       sList.querySelectorAll('.btn-del-s').forEach(b => b.addEventListener('click', () => this.adminDeleteSeason(b.dataset.id)));
       sList.querySelectorAll('.btn-tog-s').forEach(b => b.addEventListener('click', () => this.adminToggleSeason(b.dataset.id)));
     }
+
+    // Rank self-set (full admin only)
+    this.renderAdminRankForm();
+  }
+
+  renderAdminRankForm() {
+    if (!this.isFullAdmin()) return;
+    const curEl = document.getElementById('admin-rank-current');
+    const sel = document.getElementById('admin-rank-id');
+    const starsIn = document.getElementById('admin-rank-stars');
+    const info = this.getRankDisplay();
+    if (curEl) {
+      curEl.textContent = 'Rank hiện tại: ' + (info.displayName || this.rankId) + ' · ' + (this.rankStars || 0) + '★';
+    }
+    if (sel) sel.value = this.rankId || 'nhua';
+    if (starsIn) starsIn.value = this.rankStars || 0;
+  }
+
+  /**
+   * Admin chính (CongHoang) tự set rank + sao cho chính mình.
+   * @param {string} [rankId]
+   * @param {number} [stars]
+   */
+  adminSetOwnRank(rankId, stars) {
+    if (!this.isFullAdmin()) {
+      return this.toast('Chỉ Admin chính CongHoang được set rank!', 'error');
+    }
+    const id = String(rankId || document.getElementById('admin-rank-id')?.value || 'nhua').toLowerCase();
+    const ladder = (typeof RANK_LADDER !== 'undefined' ? RANK_LADDER : []);
+    const entry = ladder.find(r => r.id === id);
+    if (!entry) {
+      return this.toast('Rank không hợp lệ: ' + id, 'error');
+    }
+    let s = Number(stars != null ? stars : document.getElementById('admin-rank-stars')?.value);
+    if (isNaN(s) || s < 0) s = 0;
+    if (entry.isGod) {
+      s = Math.min(9999, Math.floor(s));
+    } else if (entry.isMaster) {
+      s = Math.min(entry.maxStars || 60, Math.floor(s));
+    } else {
+      s = Math.min(entry.maxStars || 5, Math.floor(s));
+      if (s < 1 && id !== 'nhua') s = 0;
+    }
+    const before = this.getRankDisplay();
+    this.rankId = id;
+    this.rankStars = s;
+    // Cập nhật peak mùa nếu rank mới cao hơn
+    try {
+      const idx = ladder.findIndex(r => r.id === this.rankId);
+      const pIdx = ladder.findIndex(r => r.id === this.seasonPeakRank);
+      if (idx > pIdx || (idx === pIdx && this.rankStars > (this.seasonPeakStars || 0))) {
+        this.seasonPeakRank = this.rankId;
+        this.seasonPeakStars = this.rankStars;
+      }
+    } catch (_) {}
+    this.save();
+    this.updateRankUI();
+    this.renderAdminRankForm();
+    const after = this.getRankDisplay();
+    this.toast('Đã set rank: ' + (after.displayName || id) + ' (' + s + '★)', 'success');
+    console.log('[Admin Rank]', before.displayName, '→', after.displayName, s);
+  }
+
+  adminSetRankMax() {
+    this.adminSetOwnRank('chienthan', 200);
+  }
+
+  adminSetRankReset() {
+    this.adminSetOwnRank('nhua', 0);
   }
 
   makeCustomSeasonCard(season) {
@@ -4615,6 +4684,9 @@ class Game {
     on('btn-ev-create', 'click', () => this.adminCreateEvent());
     on('btn-season-create', 'click', () => this.adminCreateSeason());
     on('nav-events', 'click', () => { this.showSection('events'); this.renderEventsPanel(); });
+    on('btn-admin-set-rank', 'click', () => this.adminSetOwnRank());
+    on('btn-admin-rank-max', 'click', () => this.adminSetRankMax());
+    on('btn-admin-rank-reset', 'click', () => this.adminSetRankReset());
 
     on('btn-admin-create', 'click', () => {
       const code = document.getElementById('admin-code')?.value;

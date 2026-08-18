@@ -688,6 +688,31 @@
             <button type="button" id="btn-season-create" class="btn-open">Tạo mùa thẻ</button>
           </div>
           <div id="admin-season-list"></div>
+
+          <h2 class="subsection-title">🏅 Tự thiết lập Rank (Admin chính)</h2>
+          <p class="tf-sub">Chỉ <b>CongHoang</b> · Set rank + số sao cho tài khoản của mình (không ảnh hưởng người chơi khác).</p>
+          <div class="admin-form" id="admin-rank-form">
+            <p id="admin-rank-current" class="tf-sub">Rank hiện tại: —</p>
+            <div class="admin-row">
+              <select id="admin-rank-id" class="db-search">
+                <option value="nhua">NHỰA</option>
+                <option value="dong">ĐỒNG</option>
+                <option value="bac">BẠC</option>
+                <option value="vang">VÀNG</option>
+                <option value="thegioi">THẾ GIỚI</option>
+                <option value="huyenthoai">HUYỀN THOẠI</option>
+                <option value="caothu">CAO THỦ / ĐẠI RAU MÁ</option>
+                <option value="chienthan">CHIẾN THẦN NEM CHUA</option>
+              </select>
+              <input type="number" id="admin-rank-stars" class="db-search" min="0" max="9999" value="0" placeholder="Số sao" />
+            </div>
+            <p class="tf-sub">Gợi ý: NHỰA–HUYỀN THOẠI max 5★ · CAO THỦ 0–60★ (51+ = ĐẠI RAU MÁ) · CHIẾN THẦN 0–9999★</p>
+            <div class="admin-row">
+              <button type="button" id="btn-admin-set-rank" class="btn-open">Áp dụng Rank</button>
+              <button type="button" id="btn-admin-rank-max" class="btn-secondary">Max Chiến Thần 200★</button>
+              <button type="button" id="btn-admin-rank-reset" class="btn-secondary">Reset NHỰA 0★</button>
+            </div>
+          </div>
         </div>
       </section>
 

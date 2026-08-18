@@ -49,7 +49,14 @@ fc-pack-game/
 
 ## Tài khoản Admin
 
-Đăng ký với tên: **CongHoang** hoặc **anhduc**
+Đăng ký với tên: **CongHoang** (full) hoặc **anhduc** (hạn chế giftcode)
+
+### Admin chính — tự set Rank
+
+Trong **Admin Panel → 🏅 Tự thiết lập Rank**:
+- Chọn rank (NHỰA → CHIẾN THẦN NEM CHUA) + số sao
+- Nút **Max Chiến Thần 200★** / **Reset NHỰA 0★**
+- Chỉ áp dụng cho tài khoản CongHoang đang đăng nhập
 
 ## Ghi chú
 
