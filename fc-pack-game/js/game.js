@@ -4123,14 +4123,15 @@ class Game {
       else if (adminSec) adminSec.prepend(verBadge);
     }
     if (verBadge) {
-      verBadge.textContent = 'Build 2.2.1 · user=' + (this.user?.username || '?') +
+      verBadge.textContent = 'Build 2.2.2 · user=' + (this.user?.username || '?') +
         ' · fullAdmin=' + isFull + ' · role=' + (this.user?.adminRole || this.getAdminRole() || 'none');
     }
 
-    if (!isFull) {
-      // Vẫn inject rank box ẩn để debug không hiện nhầm
-      return;
-    }
+    if (!isFull) return;
+
+    // Inject TRƯỚC khi fill list (index production có thể thiếu HTML form)
+    this.ensureAdminFullPanels();
+    this.ensureAdminRankPanel();
 
     const evList = document.getElementById('admin-event-list');
     if (evList) {
@@ -4158,17 +4159,77 @@ class Game {
       sList.querySelectorAll('.btn-tog-s').forEach(b => b.addEventListener('click', () => this.adminToggleSeason(b.dataset.id)));
     }
 
-    // Rank self-set — inject nếu HTML thiếu (deploy cũ)
-    this.ensureAdminRankPanel();
     this.renderAdminRankForm();
+  }
+
+  /** Khôi phục block admin-full-only (Sự kiện + Mùa thẻ) nếu HTML thiếu */
+  ensureAdminFullPanels() {
+    if (!this.isFullAdmin()) return;
+    const adminSec = document.getElementById('admin');
+    if (!adminSec) return;
+    let full = document.getElementById('admin-full-only');
+    if (!full) {
+      full = document.createElement('div');
+      full.id = 'admin-full-only';
+      full.className = 'admin-full-panel';
+      full.innerHTML =
+        '<h2 class="subsection-title">📅 Sự kiện cày (Admin chính)</h2>' +
+        '<p class="tf-sub">Tạo event có nhiệm vụ + đổi quà. Người chơi vào tab Sự kiện.</p>' +
+        '<div class="admin-form">' +
+        '<input type="text" id="ev-name" placeholder="Tên sự kiện" class="db-search" />' +
+        '<input type="text" id="ev-desc" placeholder="Mô tả ngắn" class="db-search" />' +
+        '<div class="admin-row"><input type="number" id="ev-days" placeholder="Số ngày kéo dài" class="db-search" min="1" value="7" /></div>' +
+        '<p class="tf-sub">Nhiệm vụ (mỗi dòng: tên | loại open_pack/win_match/train | target | xu | gem | cd)</p>' +
+        '<textarea id="ev-quests" class="admin-textarea" rows="3" placeholder="Mở 10 pack|open_pack|10|50000|20|0"></textarea>' +
+        '<p class="tf-sub">Đổi quà (mỗi dòng: tên | costCD | xu thưởng | gem thưởng | packId)</p>' +
+        '<textarea id="ev-shop" class="admin-textarea" rows="3" placeholder="Rương event|30|0|0|3"></textarea>' +
+        '<button type="button" id="btn-ev-create" class="btn-open">Tạo / Cập nhật sự kiện</button>' +
+        '</div><div id="admin-event-list"></div>' +
+        '<h2 class="subsection-title">🃏 Mùa thẻ mới + tỉ lệ (Admin chính)</h2>' +
+        '<p class="tf-sub">Tạo mùa + set tỉ lệ xuất hiện trong pack. Có thể bán pack chỉ bằng CD.</p>' +
+        '<div class="admin-form">' +
+        '<input type="text" id="season-name" placeholder="Tên mùa (vd: TET 2026)" class="db-search" />' +
+        '<div class="admin-row">' +
+        '<input type="number" id="season-rate" placeholder="Tỉ lệ % trong pack (vd: 15)" class="db-search" min="0" max="100" step="0.1" />' +
+        '<input type="number" id="season-ovr-min" placeholder="OVR min thẻ ảo" class="db-search" min="70" value="100" />' +
+        '<input type="number" id="season-ovr-max" placeholder="OVR max thẻ ảo" class="db-search" min="70" value="118" />' +
+        '</div><div class="admin-row">' +
+        '<label class="admin-check"><input type="checkbox" id="season-cd-only" /> Pack mùa chỉ mua bằng CD</label>' +
+        '<input type="number" id="season-cd-cost" placeholder="Giá CD / pack" class="db-search" min="0" value="40" />' +
+        '<input type="number" id="season-pack-count" placeholder="Số thẻ / pack" class="db-search" min="1" value="3" />' +
+        '</div>' +
+        '<button type="button" id="btn-season-create" class="btn-open">Tạo mùa thẻ</button>' +
+        '</div><div id="admin-season-list"></div>';
+      const giftList = document.getElementById('admin-gift-list');
+      if (giftList && giftList.parentNode) {
+        giftList.parentNode.insertBefore(full, giftList.nextSibling);
+      } else {
+        adminSec.appendChild(full);
+      }
+      // Bind nút (bindUI có thể đã chạy trước khi inject)
+      const evBtn = document.getElementById('btn-ev-create');
+      const seBtn = document.getElementById('btn-season-create');
+      if (evBtn && !evBtn._bound) {
+        evBtn._bound = true;
+        evBtn.addEventListener('click', () => this.adminCreateEvent());
+      }
+      if (seBtn && !seBtn._bound) {
+        seBtn._bound = true;
+        seBtn.addEventListener('click', () => this.adminCreateSeason());
+      }
+    }
+    full.style.display = 'block';
+    full.hidden = false;
   }
 
   /** Tạo panel set rank bằng JS nếu index.html chưa có (Railway cache / deploy lệch) */
   ensureAdminRankPanel() {
     if (!this.isFullAdmin()) return;
     let box = document.getElementById('admin-rank-panel');
-    if (box) return;
-    // Ưu tiên chèn sau danh sách giftcode / trong admin-full-only / cuối section admin
+    if (box) {
+      box.style.display = 'block';
+      return;
+    }
     const adminSec = document.getElementById('admin');
     if (!adminSec) return;
     const giftList = document.getElementById('admin-gift-list');
@@ -4176,9 +4237,9 @@ class Game {
     box = document.createElement('div');
     box.id = 'admin-rank-panel';
     box.className = 'admin-form';
-    box.style.cssText = 'margin-top:20px;padding:16px;border:1px solid rgba(251,191,36,0.45);border-radius:12px;background:rgba(15,23,42,0.85);';
+    box.style.cssText = 'margin-top:20px;padding:16px;border:2px solid #fbbf24;border-radius:12px;background:rgba(15,23,42,0.95);';
     box.innerHTML =
-      '<h2 class="subsection-title" style="margin-top:0">🏅 Tự thiết lập Rank (Admin chính)</h2>' +
+      '<h2 class="subsection-title" style="margin-top:0;color:#fbbf24">🏅 Tự thiết lập Rank (Admin chính)</h2>' +
       '<p class="tf-sub">Chỉ <b>CongHoang</b> · Set rank + sao cho tài khoản đang login</p>' +
       '<p id="admin-rank-current" class="tf-sub">Rank hiện tại: —</p>' +
       '<div class="admin-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">' +
@@ -4200,14 +4261,14 @@ class Game {
       '<button type="button" id="btn-admin-rank-max" class="btn-secondary">Max Chiến Thần 200★</button>' +
       '<button type="button" id="btn-admin-rank-reset" class="btn-secondary">Reset NHỰA 0★</button>' +
       '</div>';
-    if (giftList && giftList.parentNode) {
+    // Chèn SAU gift list, TRƯỚC full panels nếu có — hoặc cuối admin
+    if (full && full.parentNode) {
+      full.parentNode.insertBefore(box, full);
+    } else if (giftList && giftList.parentNode) {
       giftList.parentNode.insertBefore(box, giftList.nextSibling);
-    } else if (full) {
-      full.appendChild(box);
     } else {
       adminSec.appendChild(box);
     }
-    // Bind ngay (tránh phụ thuộc bindUI đã chạy trước khi panel tồn tại)
     const setBtn = document.getElementById('btn-admin-set-rank');
     const maxBtn = document.getElementById('btn-admin-rank-max');
     const resetBtn = document.getElementById('btn-admin-rank-reset');
