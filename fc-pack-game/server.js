@@ -15,6 +15,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const GIFTS_FILE = path.join(DATA_DIR, 'gifts.json');
 const FRIENDLY_FILE = path.join(DATA_DIR, 'friendly.json');
+const CONTENT_FILE = path.join(DATA_DIR, 'content.json');
 const SAVES_DIR = path.join(DATA_DIR, 'saves');
 
 const MIME = {
@@ -40,6 +41,7 @@ function ensureDirs() {
   if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '{}');
   if (!fs.existsSync(GIFTS_FILE)) fs.writeFileSync(GIFTS_FILE, '{}');
   if (!fs.existsSync(FRIENDLY_FILE)) fs.writeFileSync(FRIENDLY_FILE, '{}');
+  if (!fs.existsSync(CONTENT_FILE)) fs.writeFileSync(CONTENT_FILE, JSON.stringify({ seasons: [], events: [] }));
 }
 
 function readJson(file, fb) {
@@ -110,7 +112,18 @@ const server = http.createServer(async (req, res) => {
   try {
     // API
     if (p === '/api/health') {
-      return send(res, 200, { ok: true, time: Date.now(), dataDir: DATA_DIR });
+      let ver = '2.2.1';
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+        if (pkg.version) ver = pkg.version;
+      } catch (_) {}
+      return send(res, 200, {
+        ok: true,
+        time: Date.now(),
+        dataDir: DATA_DIR,
+        version: ver,
+        build: 'admin-rank-inject-2.2.1'
+      });
     }
 
     if (p === '/api/register' && req.method === 'POST') {
@@ -265,20 +278,45 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
 
+
+    if (p === '/api/content' && req.method === 'GET') {
+      return send(res, 200, readJson(CONTENT_FILE, { seasons: [], events: [] }));
+    }
+
+    if (p === '/api/content' && req.method === 'PUT') {
+      const body = await readBody(req);
+      const key = safeUser(body.username);
+      const users = readJson(USERS_FILE, {});
+      const rec = users[key];
+      if (!rec || rec.passwordHash !== hashPass(body.password || '') || rec.adminRole !== 'full') {
+        return send(res, 401, { error: 'Chỉ Admin chính (CongHoang)' });
+      }
+      const data = body.content || { seasons: [], events: [] };
+      writeJson(CONTENT_FILE, data);
+      return send(res, 200, { ok: true });
+    }
+
     // Static files
     let rel = p === '/' ? '/index.html' : p;
     rel = decodeURIComponent(rel.split('?')[0]);
     // prevent path traversal
-    const filePath = path.normalize(path.join(ROOT, rel));
-    if (!filePath.startsWith(ROOT)) return send(res, 403, { error: 'Forbidden' });
+    const filePath = path.resolve(path.join(ROOT, rel));
+    const rootResolved = path.resolve(ROOT);
+    if (!filePath.startsWith(rootResolved)) return send(res, 403, { error: 'Forbidden' });
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       return send(res, 404, { error: 'Not found' });
     }
     const ext = path.extname(filePath).toLowerCase();
     const type = MIME[ext] || 'application/octet-stream';
+    // html/js/css: luôn no-cache để Railway update hiện ngay (tránh cache cũ)
+    const noCache = ['.html', '.js', '.css', '.json'].includes(ext);
     res.writeHead(200, {
       'Content-Type': type,
-      'Cache-Control': (ext === '.html' || ext === '.js') ? 'no-cache' : 'public, max-age=86400',
+      'Cache-Control': noCache
+        ? 'no-store, no-cache, must-revalidate, max-age=0'
+        : 'public, max-age=86400',
+      'Pragma': noCache ? 'no-cache' : undefined,
+      'Expires': noCache ? '0' : undefined,
       'Access-Control-Allow-Origin': '*'
     });
     fs.createReadStream(filePath).pipe(res);
@@ -288,7 +326,8 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log('[FC Pack] http://localhost:' + PORT);
-  console.log('[FC Pack] Data: ' + DATA_DIR + ' (keep this folder when updating)');
+// Railway / cloud: must bind 0.0.0.0 and use process.env.PORT
+server.listen(Number(PORT), '0.0.0.0', () => {
+  console.log('[FC Pack] listening on 0.0.0.0:' + PORT);
+  console.log('[FC Pack] Data: ' + DATA_DIR);
 });
