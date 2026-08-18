@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>HD MOBILE Việt Nam</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="css/cards.css" />
+  <link rel="stylesheet" href="css/style.css?v=2.2.2" />
+  <link rel="stylesheet" href="css/cards.css?v=2.2.2" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
 </head>
 <body>
@@ -57,6 +57,7 @@
       <div class="header-actions">
         <button id="btn-gift" class="btn-icon" title="Giftcode">🎁</button>
         <button id="nav-fc-hub" class="btn-icon" title="FC Hub">🏟️</button>
+        <button id="nav-events" class="btn-icon" title="Sự kiện">📅</button>
         <button id="nav-quests" class="btn-icon" title="Nhiệm vụ">📋</button>
         <button id="nav-profile" class="btn-icon" title="Hồ sơ / BXH">👤</button>
         <button id="nav-settings" class="btn-icon" title="Cài đặt">⚙️</button>
@@ -629,9 +630,11 @@
       <section id="admin" class="section">
         <div class="section-top">
           <button class="btn-back-home" data-home>← Trang chủ</button>
-          <h1 class="section-title">Admin · Giftcode</h1>
+          <h1 class="section-title">Admin Panel</h1>
         </div>
-        <p class="section-desc">Tạo giftcode · <b>CongHoang</b> full quyền · <b>anhduc</b> giới hạn (xu ≤500k, gem ≤5k, CD ≤100, pack ≤5, max 10 lượt, không tặng cầu thủ).</p>
+        <p class="section-desc"><b>CongHoang</b> full · <b>anhduc</b> chỉ giftcode giới hạn.</p>
+
+        <h2 class="subsection-title">Giftcode</h2>
         <div class="admin-form">
           <input type="text" id="admin-code" placeholder="Mã code (vd: VIP2026)" class="db-search" />
           <div class="admin-row">
@@ -650,6 +653,76 @@
         </div>
         <h3 style="margin:20px 0 10px;font-family:Oswald,sans-serif">Danh sách code</h3>
         <div id="admin-gift-list"></div>
+
+        <div id="admin-full-only" class="admin-full-panel">
+          <h2 class="subsection-title">📅 Sự kiện cày (Admin chính)</h2>
+          <p class="tf-sub">Tạo event có nhiệm vụ + đổi quà. Người chơi vào tab Sự kiện.</p>
+          <div class="admin-form">
+            <input type="text" id="ev-name" placeholder="Tên sự kiện" class="db-search" />
+            <input type="text" id="ev-desc" placeholder="Mô tả ngắn" class="db-search" />
+            <div class="admin-row">
+              <input type="number" id="ev-days" placeholder="Số ngày kéo dài" class="db-search" min="1" value="7" />
+            </div>
+            <p class="tf-sub">Nhiệm vụ (mỗi dòng: tên | loại open_pack/win_match/train | target | xu | gem | cd)</p>
+            <textarea id="ev-quests" class="admin-textarea" rows="3" placeholder="Mở 10 pack|open_pack|10|50000|20|0"></textarea>
+            <p class="tf-sub">Đổi quà (mỗi dòng: tên | costCD | xu thưởng | gem thưởng | packId)</p>
+            <textarea id="ev-shop" class="admin-textarea" rows="3" placeholder="Rương event|30|0|0|3"></textarea>
+            <button type="button" id="btn-ev-create" class="btn-open">Tạo / Cập nhật sự kiện</button>
+          </div>
+          <div id="admin-event-list"></div>
+
+          <h2 class="subsection-title">🃏 Mùa thẻ mới + tỉ lệ (Admin chính)</h2>
+          <p class="tf-sub">Tạo mùa + set tỉ lệ xuất hiện trong pack. Có thể bán pack chỉ bằng CD.</p>
+          <div class="admin-form">
+            <input type="text" id="season-name" placeholder="Tên mùa (vd: TET 2026)" class="db-search" />
+            <div class="admin-row">
+              <input type="number" id="season-rate" placeholder="Tỉ lệ % trong pack (vd: 15)" class="db-search" min="0" max="100" step="0.1" />
+              <input type="number" id="season-ovr-min" placeholder="OVR min thẻ ảo" class="db-search" min="70" value="100" />
+              <input type="number" id="season-ovr-max" placeholder="OVR max thẻ ảo" class="db-search" min="70" value="118" />
+            </div>
+            <div class="admin-row">
+              <label class="admin-check"><input type="checkbox" id="season-cd-only" /> Pack mùa chỉ mua bằng CD</label>
+              <input type="number" id="season-cd-cost" placeholder="Giá CD / pack" class="db-search" min="0" value="40" />
+              <input type="number" id="season-pack-count" placeholder="Số thẻ / pack" class="db-search" min="1" value="3" />
+            </div>
+            <button type="button" id="btn-season-create" class="btn-open">Tạo mùa thẻ</button>
+          </div>
+          <div id="admin-season-list"></div>
+
+          <h2 class="subsection-title">🏅 Tự thiết lập Rank (Admin chính)</h2>
+          <p class="tf-sub">Chỉ <b>CongHoang</b> · Set rank + số sao cho tài khoản của mình (không ảnh hưởng người chơi khác).</p>
+          <div class="admin-form" id="admin-rank-form">
+            <p id="admin-rank-current" class="tf-sub">Rank hiện tại: —</p>
+            <div class="admin-row">
+              <select id="admin-rank-id" class="db-search">
+                <option value="nhua">NHỰA</option>
+                <option value="dong">ĐỒNG</option>
+                <option value="bac">BẠC</option>
+                <option value="vang">VÀNG</option>
+                <option value="thegioi">THẾ GIỚI</option>
+                <option value="huyenthoai">HUYỀN THOẠI</option>
+                <option value="caothu">CAO THỦ / ĐẠI RAU MÁ</option>
+                <option value="chienthan">CHIẾN THẦN NEM CHUA</option>
+              </select>
+              <input type="number" id="admin-rank-stars" class="db-search" min="0" max="9999" value="0" placeholder="Số sao" />
+            </div>
+            <p class="tf-sub">Gợi ý: NHỰA–HUYỀN THOẠI max 5★ · CAO THỦ 0–60★ (51+ = ĐẠI RAU MÁ) · CHIẾN THẦN 0–9999★</p>
+            <div class="admin-row">
+              <button type="button" id="btn-admin-set-rank" class="btn-open">Áp dụng Rank</button>
+              <button type="button" id="btn-admin-rank-max" class="btn-secondary">Max Chiến Thần 200★</button>
+              <button type="button" id="btn-admin-rank-reset" class="btn-secondary">Reset NHỰA 0★</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="events" class="section">
+        <div class="section-top">
+          <button class="btn-back-home" data-home>← Trang chủ</button>
+          <h1 class="section-title">📅 Sự kiện</h1>
+        </div>
+        <p class="section-desc">Nhiệm vụ event · Đổi quà · Pack mùa (CD)</p>
+        <div id="events-panel"></div>
       </section>
     </main>
 
@@ -741,6 +814,7 @@
       <div class="mobile-sheet-handle"></div>
       <button type="button" class="msheet-btn" data-go="market">🛒 Thị trường</button>
       <button type="button" class="msheet-btn" data-go="starbook">⭐ Sổ siêu sao</button>
+      <button type="button" class="msheet-btn" data-go="events">📅 Sự kiện</button>
       <button type="button" class="msheet-btn" data-go="quests">📋 Nhiệm vụ</button>
       <button type="button" class="msheet-btn" data-go="profile">👤 Hồ sơ / BXH</button>
       <button type="button" class="msheet-btn" data-go="settings">⚙️ Cài đặt</button>
@@ -752,11 +826,11 @@
     </div>
   </div>
 
-  <script src="js/playstyles.js"></script>
-  <script src="js/players.js"></script>
-  <script src="js/modes.js"></script>
-  <script src="js/cloud.js"></script>
-  <script src="js/features.js"></script>
-  <script src="js/game.js"></script>
+  <script src="js/playstyles.js?v=2.2.2"></script>
+  <script src="js/players.js?v=2.2.2"></script>
+  <script src="js/modes.js?v=2.2.2"></script>
+  <script src="js/cloud.js?v=2.2.2"></script>
+  <script src="js/features.js?v=2.2.2"></script>
+  <script src="js/game.js?v=2.2.2"></script>
 </body>
 </html>
