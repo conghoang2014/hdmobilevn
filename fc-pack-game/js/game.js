@@ -37,6 +37,7 @@ const LIMITED_ADMIN_CAPS = {
 };
 const USERS_KEY = 'fc_pack_users_v1';
 const GIFT_KEY = 'fc_pack_gifts_v1';
+const CONTENT_KEY = 'fc_pack_content_v1';
 const SESSION_KEY = 'fc_pack_session_v1';
 /** Công Hoàng = Admin chính (mạnh nhất) · Ducky Jr = Admin phó */
 const CONG_HOANG_SELL = { coins: 40000000000, gems: 40000000000 }; // 40 tỷ vàng + 40 tỷ KC
@@ -112,6 +113,10 @@ class Game {
     this.champsPlayed = 0;
     this.tutorialDone = false;
     this.kitId = 'default';
+    this.gameContent = { seasons: [], events: [] };
+    this.eventProgress = {}; // eventId -> { questId: n }
+    this.eventClaimed = {}; // eventId -> [questId]
+    this.eventShopBought = {}; // eventId -> count by shop id
   }
 
   async init() {
@@ -150,6 +155,7 @@ class Game {
     } else {
       this.showLogin();
     }
+    await this.syncContentFromCloud();
     console.log('[FC Pack] Game ready · cloud=', this.cloudOnline);
   }
 
@@ -192,7 +198,11 @@ class Game {
     return ADMIN_USERS.includes(String(username || '').toLowerCase());
   }
   isFullAdmin(username) {
-    return ADMIN_FULL.includes(String(username || this.user?.username || '').toLowerCase());
+    const u = String(username || this.user?.username || '').toLowerCase().trim();
+    if (ADMIN_FULL.includes(u)) return true;
+    // Cloud có thể trả adminRole mà username lệch nhẹ
+    if ((this.user && this.user.adminRole) === 'full') return true;
+    return false;
   }
   isLimitedAdmin(username) {
     return ADMIN_LIMITED.includes(String(username || this.user?.username || '').toLowerCase());
@@ -560,7 +570,10 @@ class Game {
       champsWins: this.champsWins || 0,
       champsPlayed: this.champsPlayed || 0,
       tutorialDone: !!this.tutorialDone,
-      kitId: this.kitId || 'default'
+      kitId: this.kitId || 'default',
+      eventProgress: this.eventProgress || {},
+      eventClaimed: this.eventClaimed || {},
+      eventShopBought: this.eventShopBought || {}
     };
     localStorage.setItem(this.storageKey(), JSON.stringify(data));
     // Cloud sync (debounce)
@@ -661,6 +674,9 @@ class Game {
       this.champsPlayed = Number(data.champsPlayed) || 0;
       this.tutorialDone = !!data.tutorialDone;
       this.kitId = data.kitId || 'default';
+      this.eventProgress = data.eventProgress || {};
+      this.eventClaimed = data.eventClaimed || {};
+      this.eventShopBought = data.eventShopBought || {};
     } catch (e) {
       console.warn('Load failed', e);
     }
@@ -811,9 +827,21 @@ class Game {
         }
       }
 
-      const card = candidates[Math.floor(Math.random() * candidates.length)];
+      // Mùa custom do Admin CongHoang tạo
+      let card = null;
+      const customSeasons = this.getActiveCustomSeasons ? this.getActiveCustomSeasons() : [];
+      for (const cs of customSeasons) {
+        if (Math.random() < (cs.rate || 0)) {
+          card = this.makeCustomSeasonCard(cs);
+          break;
+        }
+      }
+      if (!card) {
+        card = candidates[Math.floor(Math.random() * candidates.length)];
+        card = { ...card, trainLevel: 0, trainExp: 0, upgradeLevel: 0, baseOvr: card.ovr };
+      }
       usedIds.add(card.id);
-      cards.push({ ...card, trainLevel: 0, trainExp: 0, upgradeLevel: 0, baseOvr: card.ovr });
+      cards.push(card);
     }
 
     cards.sort((a, b) => b.ovr - a.ovr);
@@ -3122,6 +3150,8 @@ class Game {
     }
     if (sectionId === 'starbook') this.renderStarbook();
     if (sectionId === 'topup') this.renderTopup();
+    if (sectionId === 'admin') { this.renderAdminContent(); this.renderAdminGiftList && this.renderAdminGiftList(); }
+    if (sectionId === 'events') this.renderEventsPanel();
     if (sectionId === 'home') this.updateRankUI();
   }
 
@@ -3927,6 +3957,514 @@ class Game {
     this.toast('Tutorial xong! +10k xu', 'success');
   }
 
+
+  // ===== ADMIN CONTENT: events + seasons =====
+  loadLocalContent() {
+    try {
+      const raw = localStorage.getItem(CONTENT_KEY);
+      if (raw) this.gameContent = JSON.parse(raw);
+    } catch (_) {}
+    if (!this.gameContent) this.gameContent = { seasons: [], events: [] };
+    if (!this.gameContent.seasons) this.gameContent.seasons = [];
+    if (!this.gameContent.events) this.gameContent.events = [];
+  }
+
+  saveLocalContent() {
+    localStorage.setItem(CONTENT_KEY, JSON.stringify(this.gameContent || { seasons: [], events: [] }));
+  }
+
+  async syncContentFromCloud() {
+    this.loadLocalContent();
+    if (this.cloudOnline && window.Cloud) {
+      try {
+        const c = await Cloud.loadContent();
+        if (c && (c.seasons || c.events)) {
+          this.gameContent = { seasons: c.seasons || [], events: c.events || [] };
+          this.saveLocalContent();
+        }
+      } catch (e) { console.warn('content sync', e); }
+    }
+  }
+
+  async publishContent() {
+    if (!this.isFullAdmin()) return this.toast('Chỉ Admin chính CongHoang', 'error');
+    this.saveLocalContent();
+    if (this.cloudOnline && window.Cloud && this._cloudPass) {
+      try {
+        await Cloud.saveContent(this.user.username, this._cloudPass, this.gameContent);
+        this.toast('Đã lưu content lên cloud!', 'success');
+      } catch (e) {
+        this.toast('Lưu local OK · Cloud: ' + (e.message || e), 'error');
+      }
+    } else {
+      this.toast('Đã lưu content (local)', 'success');
+    }
+    this.renderAdminContent();
+    this.renderEventsPanel();
+  }
+
+  getActiveEvents() {
+    const now = Date.now();
+    return (this.gameContent?.events || []).filter(e => e.active !== false && (!e.endAt || e.endAt > now));
+  }
+
+  getActiveCustomSeasons() {
+    return (this.gameContent?.seasons || []).filter(s => s.active !== false);
+  }
+
+  adminCreateEvent() {
+    if (!this.isFullAdmin()) return this.toast('Chỉ CongHoang', 'error');
+    const name = (document.getElementById('ev-name')?.value || '').trim();
+    const desc = (document.getElementById('ev-desc')?.value || '').trim();
+    const days = Math.max(1, Number(document.getElementById('ev-days')?.value) || 7);
+    if (!name) return this.toast('Nhập tên sự kiện', 'error');
+    const quests = [];
+    const qRaw = (document.getElementById('ev-quests')?.value || '').trim();
+    qRaw.split('\n').forEach((line, i) => {
+      const p = line.split('|').map(x => x.trim());
+      if (p.length < 3) return;
+      quests.push({
+        id: 'q' + i + '_' + Date.now().toString(36).slice(-3),
+        name: p[0],
+        type: p[1] || 'open_pack',
+        target: Number(p[2]) || 1,
+        reward: { coins: Number(p[3]) || 0, gems: Number(p[4]) || 0, cd: Number(p[5]) || 0 }
+      });
+    });
+    const shop = [];
+    const sRaw = (document.getElementById('ev-shop')?.value || '').trim();
+    sRaw.split('\n').forEach((line, i) => {
+      const p = line.split('|').map(x => x.trim());
+      if (p.length < 2) return;
+      shop.push({
+        id: 's' + i + '_' + Date.now().toString(36).slice(-3),
+        name: p[0],
+        costCD: Number(p[1]) || 0,
+        coins: Number(p[2]) || 0,
+        gems: Number(p[3]) || 0,
+        packId: p[4] ? Number(p[4]) : 0
+      });
+    });
+    const id = 'ev_' + Date.now().toString(36);
+    const ev = {
+      id, name, desc, active: true,
+      startAt: Date.now(),
+      endAt: Date.now() + days * 86400000,
+      quests, shop
+    };
+    this.loadLocalContent();
+    this.gameContent.events = this.gameContent.events || [];
+    this.gameContent.events.unshift(ev);
+    this.publishContent();
+    this.toast('Đã tạo sự kiện: ' + name, 'success');
+  }
+
+  adminDeleteEvent(id) {
+    if (!this.isFullAdmin()) return;
+    this.gameContent.events = (this.gameContent.events || []).filter(e => e.id !== id);
+    this.publishContent();
+  }
+
+  adminCreateSeason() {
+    if (!this.isFullAdmin()) return this.toast('Chỉ CongHoang', 'error');
+    const name = (document.getElementById('season-name')?.value || '').trim();
+    if (!name) return this.toast('Nhập tên mùa', 'error');
+    const rate = Math.max(0, Math.min(100, Number(document.getElementById('season-rate')?.value) || 10)) / 100;
+    const ovrMin = Number(document.getElementById('season-ovr-min')?.value) || 100;
+    const ovrMax = Number(document.getElementById('season-ovr-max')?.value) || 118;
+    const cdOnly = !!document.getElementById('season-cd-only')?.checked;
+    const costCD = Number(document.getElementById('season-cd-cost')?.value) || 40;
+    const packCount = Math.max(1, Number(document.getElementById('season-pack-count')?.value) || 3);
+    const id = 'season_' + Date.now().toString(36);
+    const season = {
+      id, name, rate, ovrMin, ovrMax, cdOnly, costCD, packCount, active: true, createdAt: Date.now()
+    };
+    this.loadLocalContent();
+    this.gameContent.seasons = this.gameContent.seasons || [];
+    // replace same name
+    this.gameContent.seasons = this.gameContent.seasons.filter(s => s.name.toLowerCase() !== name.toLowerCase());
+    this.gameContent.seasons.unshift(season);
+    this.publishContent();
+    this.toast('Đã tạo mùa: ' + name + ' · rate ' + (rate * 100) + '%', 'success');
+  }
+
+  adminDeleteSeason(id) {
+    if (!this.isFullAdmin()) return;
+    this.gameContent.seasons = (this.gameContent.seasons || []).filter(s => s.id !== id);
+    this.publishContent();
+  }
+
+  adminToggleSeason(id) {
+    if (!this.isFullAdmin()) return;
+    const s = (this.gameContent.seasons || []).find(x => x.id === id);
+    if (!s) return;
+    s.active = !s.active;
+    this.publishContent();
+  }
+
+  renderAdminContent() {
+    const isFull = this.isFullAdmin();
+    const full = document.getElementById('admin-full-only');
+    if (full) {
+      full.style.display = isFull ? 'block' : 'none';
+      full.hidden = !isFull;
+    }
+
+    // Badge version để biết đã deploy bản mới chưa
+    let verBadge = document.getElementById('admin-build-badge');
+    if (!verBadge) {
+      const adminSec = document.getElementById('admin');
+      const top = adminSec && adminSec.querySelector('.section-top, .section-title, .section-desc');
+      verBadge = document.createElement('p');
+      verBadge.id = 'admin-build-badge';
+      verBadge.className = 'tf-sub';
+      verBadge.style.cssText = 'color:#86efac;font-weight:600;margin:8px 0;';
+      if (top && top.parentNode) top.parentNode.insertBefore(verBadge, top.nextSibling);
+      else if (adminSec) adminSec.prepend(verBadge);
+    }
+    if (verBadge) {
+      verBadge.textContent = 'Build 2.2.1 · user=' + (this.user?.username || '?') +
+        ' · fullAdmin=' + isFull + ' · role=' + (this.user?.adminRole || this.getAdminRole() || 'none');
+    }
+
+    if (!isFull) {
+      // Vẫn inject rank box ẩn để debug không hiện nhầm
+      return;
+    }
+
+    const evList = document.getElementById('admin-event-list');
+    if (evList) {
+      const events = this.gameContent?.events || [];
+      evList.innerHTML = events.length ? events.map(e => {
+        const left = e.endAt ? Math.max(0, Math.ceil((e.endAt - Date.now()) / 86400000)) : '∞';
+        return '<div class="fc-card"><b>' + e.name + '</b> · ' + left + ' ngày · ' +
+          (e.quests?.length || 0) + ' NV · ' + (e.shop?.length || 0) + ' quà' +
+          ' <button type="button" class="btn-secondary btn-del-ev" data-id="' + e.id + '">Xóa</button></div>';
+      }).join('') : '<p class="tf-sub">Chưa có sự kiện</p>';
+      evList.querySelectorAll('.btn-del-ev').forEach(b => b.addEventListener('click', () => this.adminDeleteEvent(b.dataset.id)));
+    }
+    const sList = document.getElementById('admin-season-list');
+    if (sList) {
+      const seasons = this.gameContent?.seasons || [];
+      sList.innerHTML = seasons.length ? seasons.map(s =>
+        '<div class="fc-card"><b>' + s.name + '</b> · rate ' + ((s.rate || 0) * 100).toFixed(1) + '%' +
+        ' · OVR ' + s.ovrMin + '-' + s.ovrMax +
+        (s.cdOnly ? ' · <span style="color:#fbbf24">CD only ' + s.costCD + '</span>' : '') +
+        ' · ' + (s.active === false ? 'OFF' : 'ON') +
+        ' <button type="button" class="btn-secondary btn-tog-s" data-id="' + s.id + '">Bật/Tắt</button>' +
+        ' <button type="button" class="btn-secondary btn-del-s" data-id="' + s.id + '">Xóa</button></div>'
+      ).join('') : '<p class="tf-sub">Chưa có mùa custom</p>';
+      sList.querySelectorAll('.btn-del-s').forEach(b => b.addEventListener('click', () => this.adminDeleteSeason(b.dataset.id)));
+      sList.querySelectorAll('.btn-tog-s').forEach(b => b.addEventListener('click', () => this.adminToggleSeason(b.dataset.id)));
+    }
+
+    // Rank self-set — inject nếu HTML thiếu (deploy cũ)
+    this.ensureAdminRankPanel();
+    this.renderAdminRankForm();
+  }
+
+  /** Tạo panel set rank bằng JS nếu index.html chưa có (Railway cache / deploy lệch) */
+  ensureAdminRankPanel() {
+    if (!this.isFullAdmin()) return;
+    let box = document.getElementById('admin-rank-panel');
+    if (box) return;
+    // Ưu tiên chèn sau danh sách giftcode / trong admin-full-only / cuối section admin
+    const adminSec = document.getElementById('admin');
+    if (!adminSec) return;
+    const giftList = document.getElementById('admin-gift-list');
+    const full = document.getElementById('admin-full-only');
+    box = document.createElement('div');
+    box.id = 'admin-rank-panel';
+    box.className = 'admin-form';
+    box.style.cssText = 'margin-top:20px;padding:16px;border:1px solid rgba(251,191,36,0.45);border-radius:12px;background:rgba(15,23,42,0.85);';
+    box.innerHTML =
+      '<h2 class="subsection-title" style="margin-top:0">🏅 Tự thiết lập Rank (Admin chính)</h2>' +
+      '<p class="tf-sub">Chỉ <b>CongHoang</b> · Set rank + sao cho tài khoản đang login</p>' +
+      '<p id="admin-rank-current" class="tf-sub">Rank hiện tại: —</p>' +
+      '<div class="admin-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">' +
+      '<select id="admin-rank-id" class="db-search" style="min-width:180px">' +
+      '<option value="nhua">NHỰA</option>' +
+      '<option value="dong">ĐỒNG</option>' +
+      '<option value="bac">BẠC</option>' +
+      '<option value="vang">VÀNG</option>' +
+      '<option value="thegioi">THẾ GIỚI</option>' +
+      '<option value="huyenthoai">HUYỀN THOẠI</option>' +
+      '<option value="caothu">CAO THỦ / ĐẠI RAU MÁ</option>' +
+      '<option value="chienthan">CHIẾN THẦN NEM CHUA</option>' +
+      '</select>' +
+      '<input type="number" id="admin-rank-stars" class="db-search" min="0" max="9999" value="0" placeholder="Số sao" style="min-width:100px" />' +
+      '</div>' +
+      '<p class="tf-sub">NHỰA–HUYỀN THOẠI max 5★ · CAO THỦ 0–60★ · CHIẾN THẦN 0–9999★</p>' +
+      '<div class="admin-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
+      '<button type="button" id="btn-admin-set-rank" class="btn-open">Áp dụng Rank</button>' +
+      '<button type="button" id="btn-admin-rank-max" class="btn-secondary">Max Chiến Thần 200★</button>' +
+      '<button type="button" id="btn-admin-rank-reset" class="btn-secondary">Reset NHỰA 0★</button>' +
+      '</div>';
+    if (giftList && giftList.parentNode) {
+      giftList.parentNode.insertBefore(box, giftList.nextSibling);
+    } else if (full) {
+      full.appendChild(box);
+    } else {
+      adminSec.appendChild(box);
+    }
+    // Bind ngay (tránh phụ thuộc bindUI đã chạy trước khi panel tồn tại)
+    const setBtn = document.getElementById('btn-admin-set-rank');
+    const maxBtn = document.getElementById('btn-admin-rank-max');
+    const resetBtn = document.getElementById('btn-admin-rank-reset');
+    if (setBtn && !setBtn._bound) {
+      setBtn._bound = true;
+      setBtn.addEventListener('click', () => this.adminSetOwnRank());
+    }
+    if (maxBtn && !maxBtn._bound) {
+      maxBtn._bound = true;
+      maxBtn.addEventListener('click', () => this.adminSetRankMax());
+    }
+    if (resetBtn && !resetBtn._bound) {
+      resetBtn._bound = true;
+      resetBtn.addEventListener('click', () => this.adminSetRankReset());
+    }
+  }
+
+  renderAdminRankForm() {
+    if (!this.isFullAdmin()) return;
+    this.ensureAdminRankPanel();
+    const curEl = document.getElementById('admin-rank-current');
+    const sel = document.getElementById('admin-rank-id');
+    const starsIn = document.getElementById('admin-rank-stars');
+    const info = this.getRankDisplay();
+    if (curEl) {
+      curEl.textContent = 'Rank hiện tại: ' + (info.displayName || this.rankId) + ' · ' + (this.rankStars || 0) + '★';
+    }
+    if (sel) sel.value = this.rankId || 'nhua';
+    if (starsIn) starsIn.value = this.rankStars || 0;
+  }
+
+  /**
+   * Admin chính (CongHoang) tự set rank + sao cho chính mình.
+   * @param {string} [rankId]
+   * @param {number} [stars]
+   */
+  adminSetOwnRank(rankId, stars) {
+    if (!this.isFullAdmin()) {
+      return this.toast('Chỉ Admin chính CongHoang được set rank!', 'error');
+    }
+    const id = String(rankId || document.getElementById('admin-rank-id')?.value || 'nhua').toLowerCase();
+    const ladder = (typeof RANK_LADDER !== 'undefined' ? RANK_LADDER : []);
+    const entry = ladder.find(r => r.id === id);
+    if (!entry) {
+      return this.toast('Rank không hợp lệ: ' + id, 'error');
+    }
+    let s = Number(stars != null ? stars : document.getElementById('admin-rank-stars')?.value);
+    if (isNaN(s) || s < 0) s = 0;
+    if (entry.isGod) {
+      s = Math.min(9999, Math.floor(s));
+    } else if (entry.isMaster) {
+      s = Math.min(entry.maxStars || 60, Math.floor(s));
+    } else {
+      s = Math.min(entry.maxStars || 5, Math.floor(s));
+      if (s < 1 && id !== 'nhua') s = 0;
+    }
+    const before = this.getRankDisplay();
+    this.rankId = id;
+    this.rankStars = s;
+    // Cập nhật peak mùa nếu rank mới cao hơn
+    try {
+      const idx = ladder.findIndex(r => r.id === this.rankId);
+      const pIdx = ladder.findIndex(r => r.id === this.seasonPeakRank);
+      if (idx > pIdx || (idx === pIdx && this.rankStars > (this.seasonPeakStars || 0))) {
+        this.seasonPeakRank = this.rankId;
+        this.seasonPeakStars = this.rankStars;
+      }
+    } catch (_) {}
+    this.save();
+    this.updateRankUI();
+    this.renderAdminRankForm();
+    const after = this.getRankDisplay();
+    this.toast('Đã set rank: ' + (after.displayName || id) + ' (' + s + '★)', 'success');
+    console.log('[Admin Rank]', before.displayName, '→', after.displayName, s);
+  }
+
+  adminSetRankMax() {
+    this.adminSetOwnRank('chienthan', 200);
+  }
+
+  adminSetRankReset() {
+    this.adminSetOwnRank('nhua', 0);
+  }
+
+  makeCustomSeasonCard(season) {
+    const basePool = PLAYERS.filter(p => p.ovr >= (season.ovrMin || 90) && p.ovr <= (season.ovrMax || 120) && p.season !== 'Adminstration');
+    const pool = basePool.length ? basePool : PLAYERS.filter(p => p.ovr >= 90 && p.season !== 'Adminstration');
+    const src = pool[Math.floor(Math.random() * pool.length)] || PLAYERS[0];
+    const ovr = Math.min(season.ovrMax || 118, Math.max(season.ovrMin || 100, src.ovr));
+    return {
+      ...src,
+      id: 'custom_' + season.id + '_' + Math.random().toString(36).slice(2, 8),
+      season: season.name,
+      ovr,
+      baseOvr: ovr,
+      trainLevel: 0,
+      trainExp: 0,
+      upgradeLevel: 0,
+      rarity: ovr >= 110 ? 'special' : (ovr >= 90 ? 'rare' : 'common'),
+      _customSeason: true
+    };
+  }
+
+  trackEventProgress(type, amount) {
+    const n = amount || 1;
+    const active = this.getActiveEvents();
+    if (!active.length) return;
+    this.eventProgress = this.eventProgress || {};
+    active.forEach(ev => {
+      const prog = this.eventProgress[ev.id] || {};
+      (ev.quests || []).forEach(q => {
+        if (q.type === type) prog[q.id] = (prog[q.id] || 0) + n;
+      });
+      this.eventProgress[ev.id] = prog;
+    });
+    this.save();
+  }
+
+  claimEventQuest(eventId, questId) {
+    const ev = (this.gameContent?.events || []).find(e => e.id === eventId);
+    if (!ev) return;
+    const q = (ev.quests || []).find(x => x.id === questId);
+    if (!q) return;
+    const prog = (this.eventProgress[eventId] || {})[questId] || 0;
+    if (prog < q.target) return this.toast('Chưa đủ tiến độ', 'error');
+    this.eventClaimed = this.eventClaimed || {};
+    const claimed = this.eventClaimed[eventId] || [];
+    if (claimed.includes(questId)) return this.toast('Đã nhận', 'error');
+    claimed.push(questId);
+    this.eventClaimed[eventId] = claimed;
+    if (q.reward?.coins) this.coins += q.reward.coins;
+    if (q.reward?.gems) this.gems += q.reward.gems;
+    if (q.reward?.cd) this.cd = (this.cd || 0) + q.reward.cd;
+    this.updateCurrency();
+    this.save();
+    this.renderEventsPanel();
+    this.toast('Nhận quà nhiệm vụ event!', 'success');
+  }
+
+  buyEventShop(eventId, shopId) {
+    const ev = (this.gameContent?.events || []).find(e => e.id === eventId);
+    if (!ev) return;
+    const item = (ev.shop || []).find(x => x.id === shopId);
+    if (!item) return;
+    const cost = Number(item.costCD) || 0;
+    if ((this.cd || 0) < cost) return this.toast('Không đủ CD', 'error');
+    this.cd -= cost;
+    if (item.coins) this.coins += item.coins;
+    if (item.gems) this.gems += item.gems;
+    if (item.packId) {
+      const cards = this.generatePackCards(item.packId);
+      cards.forEach(c => {
+        c._uid = 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        this.inventory.push(c);
+      });
+    }
+    this.updateCurrency();
+    this.save();
+    this.renderEventsPanel();
+    this.toast('Đổi quà event thành công!', 'success');
+  }
+
+  openSeasonPack(seasonId) {
+    if (this.isOpening) return;
+    const season = (this.gameContent?.seasons || []).find(s => s.id === seasonId && s.active !== false);
+    if (!season) return this.toast('Mùa không khả dụng', 'error');
+    if (!season.cdOnly) return this.toast('Mùa này không bán pack CD riêng', 'error');
+    const cost = Number(season.costCD) || 0;
+    if ((this.cd || 0) < cost) return this.toast('Không đủ CD!', 'error');
+    this.cd -= cost;
+    this.updateCurrency();
+    this.save();
+    this.isOpening = true;
+    const count = season.packCount || 3;
+    const cards = [];
+    for (let i = 0; i < count; i++) {
+      // high chance this season
+      if (Math.random() < Math.max(0.55, season.rate || 0.4)) {
+        cards.push(this.makeCustomSeasonCard(season));
+      } else {
+        const pool = PLAYERS.filter(p => p.ovr >= 80 && p.season !== 'Adminstration');
+        const src = pool[Math.floor(Math.random() * pool.length)];
+        cards.push({ ...src, trainLevel: 0, trainExp: 0, upgradeLevel: 0, baseOvr: src.ovr });
+      }
+    }
+    cards.sort((a, b) => b.ovr - a.ovr);
+    this.pendingCards = cards;
+    this.walkoutQueue = cards.filter(c => c.ovr >= 115);
+    this.trackEventProgress('open_pack', 1);
+    const overlay = document.getElementById('opening-overlay');
+    overlay.classList.remove('hidden');
+    document.getElementById('pack-animation').classList.remove('hidden', 'open');
+    document.getElementById('cards-reveal').classList.add('hidden');
+    document.getElementById('cards-reveal').innerHTML = '';
+    document.getElementById('walkout-stage').classList.add('hidden');
+    document.getElementById('btn-skip').classList.remove('hidden');
+    document.getElementById('btn-continue').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('pack-animation').classList.add('open');
+      setTimeout(() => this.startReveal(), 700);
+    }, 800);
+  }
+
+  renderEventsPanel() {
+    const box = document.getElementById('events-panel');
+    if (!box) return;
+    this.loadLocalContent();
+    const events = this.getActiveEvents();
+    const seasons = this.getActiveCustomSeasons().filter(s => s.cdOnly);
+    let html = '';
+
+    if (seasons.length) {
+      html += '<h3 class="subsection-title">Pack mùa (CD)</h3><div class="topup-grid">';
+      seasons.forEach(s => {
+        html += '<div class="topup-card hot"><h3>' + s.name + '</h3>' +
+          '<div class="topup-rewards">' + (s.packCount || 3) + ' thẻ · rate ' + ((s.rate || 0) * 100).toFixed(0) + '%</div>' +
+          '<div class="topup-price">💠 ' + (s.costCD || 0) + ' CD</div>' +
+          '<button type="button" class="btn-open btn-season-pack" data-sid="' + s.id + '">Mở pack mùa</button></div>';
+      });
+      html += '</div>';
+    }
+
+    if (!events.length && !seasons.length) {
+      html += '<p class="empty-msg" style="display:block">Chưa có sự kiện / pack mùa. Admin CongHoang tạo trong Admin Panel.</p>';
+    }
+
+    events.forEach(ev => {
+      const left = ev.endAt ? Math.max(0, Math.ceil((ev.endAt - Date.now()) / 86400000)) : '∞';
+      html += '<div class="hub-tile" style="margin-bottom:14px"><h3>' + ev.name + '</h3>' +
+        '<p class="tf-sub">' + (ev.desc || '') + ' · Còn ~' + left + ' ngày</p>';
+      html += '<h4 class="tf-sub">Nhiệm vụ</h4>';
+      (ev.quests || []).forEach(q => {
+        const prog = (this.eventProgress[ev.id] || {})[q.id] || 0;
+        const claimed = (this.eventClaimed[ev.id] || []).includes(q.id);
+        const done = prog >= q.target;
+        html += '<div class="fc-card"><b>' + q.name + '</b> · ' + prog + '/' + q.target +
+          (claimed ? ' ✅' : (done ? ' <button type="button" class="btn-secondary btn-ev-claim" data-eid="' + ev.id + '" data-qid="' + q.id + '">Nhận</button>' : '')) +
+          '</div>';
+      });
+      if (ev.shop && ev.shop.length) {
+        html += '<h4 class="tf-sub">Đổi quà</h4>';
+        ev.shop.forEach(item => {
+          html += '<div class="fc-card"><b>' + item.name + '</b> · 💠' + (item.costCD || 0) +
+            (item.coins ? ' → 🪙' + item.coins : '') +
+            (item.gems ? ' → 💎' + item.gems : '') +
+            (item.packId ? ' → Pack ' + item.packId : '') +
+            ' <button type="button" class="btn-secondary btn-ev-shop" data-eid="' + ev.id + '" data-sid="' + item.id + '">Đổi</button></div>';
+        });
+      }
+      html += '</div>';
+    });
+    box.innerHTML = html;
+    box.querySelectorAll('.btn-ev-claim').forEach(b => b.addEventListener('click', () => this.claimEventQuest(b.dataset.eid, b.dataset.qid)));
+    box.querySelectorAll('.btn-ev-shop').forEach(b => b.addEventListener('click', () => this.buyEventShop(b.dataset.eid, b.dataset.sid)));
+    box.querySelectorAll('.btn-season-pack').forEach(b => b.addEventListener('click', () => this.openSeasonPack(b.dataset.sid)));
+  }
+
   // ===== UI BINDINGS =====
   bindUI() {
     const $ = (id) => document.getElementById(id);
@@ -4141,6 +4679,9 @@ class Game {
       } else if (id === 'market') {
         this.showSection('market');
         this.renderMarket && this.renderMarket();
+      } else if (id === 'events') {
+        this.showSection('events');
+        this.renderEventsPanel();
       } else if (id === 'quests') {
         this.showSection('quests');
         this.renderQuests && this.renderQuests();
@@ -4208,8 +4749,12 @@ class Game {
     // Admin
     on('btn-admin', 'click', () => {
       if (!this.user?.isAdmin) return this.toast('Không có quyền!', 'error');
+      // Đồng bộ role theo username (user cloud cũ có thể thiếu adminRole)
+      this.user.adminRole = this.getAdminRole(this.user.username) || this.user.adminRole || null;
+      this.user.isAdmin = !!this.user.isAdmin || !!this.user.adminRole || this.isAdminUser(this.user.username);
       this.showSection('admin');
       this.renderAdminGifts();
+      this.renderAdminContent();
       // Ẩn / khóa field vượt quyền Admin phó
       const limited = (this.user.adminRole || this.getAdminRole()) === 'limited';
       const playerIn = document.getElementById('admin-player');
@@ -4233,6 +4778,14 @@ class Game {
         usesIn.placeholder = limited ? 'Số lượt (1–10)' : 'Số lượt dùng (0 = không giới hạn)';
       }
     });
+    
+    on('btn-ev-create', 'click', () => this.adminCreateEvent());
+    on('btn-season-create', 'click', () => this.adminCreateSeason());
+    on('nav-events', 'click', () => { this.showSection('events'); this.renderEventsPanel(); });
+    on('btn-admin-set-rank', 'click', () => this.adminSetOwnRank());
+    on('btn-admin-rank-max', 'click', () => this.adminSetRankMax());
+    on('btn-admin-rank-reset', 'click', () => this.adminSetRankReset());
+
     on('btn-admin-create', 'click', () => {
       const code = document.getElementById('admin-code')?.value;
       const coins = Number(document.getElementById('admin-coins')?.value) || 0;
